@@ -16,25 +16,24 @@ Upload Mode : USB-OTG(TinyUSB) - CPU frequency : 160 MHz (or 80 MHz) / Flash Mod
 Flash Size : 8 MB / Partition : 8MB with FAT (2MB app / 3.7MB FFAT) - PSRAM : disabled
 
 
-The toolchain now features a default 8MB flash size partition with OTA (3MB) and a 1.5MB FATFS exposed over USB and combined with OTA updates, which avoids dealing with the toolchain modification.
-However, the FW initially targetted to use 3.7MB FATFS and 2MB app, so the /tools/partitions/default_8MB.csv can be modified with the provided partition file that extends the FAT partition to 3.7MB.
+The default 3.1.1 toolchain must be updated with an additional partition table to use the 8MB flash size along with a 3.7 MB FATFS exposed over USB and combined with OTA updates
+File /tools/partitions/default_8MB.csv must be modified with the provided partition file that extends the FAT partition to 3.7MB.
 
-To be able to use the 8MB-FATFS partition, a new item must be added in the boards.txt definition.
+To be able to use the 8MB-FATFS partition in the IDE, a new item must be added in the boards.txt definition (until we make a pull request on ESPRESSIF repo)
 Search for :
 **esp32s3.name=ESP32S3 Dev Module**
 
-###then in the partition scheme menu definition, add:
+**then in the partition scheme menu definition, add:**
 esp32s3.menu.PartitionScheme.8MB_ota_ffat=8M with OTA and FATFS (2MB APP/3.7MB FATFS)
 esp32s3.menu.PartitionScheme.8MB_ota_ffat.build.partitions=default_ffat_8MB
 esp32s3.menu.PartitionScheme.8MB_ota_ffat.upload.maximum_size=2097152
 
-The toolchain must be updated with an additional partition table to use the 8MB flash size along with a 3.7 MB FATFS exposed over USB and combined with OTA updates
+
 
 ## Library dependencies
 The firmware uses several libraries that have to be separately installed either manually or using the Arduino library manager. 
 We tried to limit those by using either local versions of the libraries or custom code & implementation like the low-level drivers of the IMU sensors.
 
-- U8g2lib.h
 
 ## Once flashed...
 Connect the R-IoT module to computer by USB
