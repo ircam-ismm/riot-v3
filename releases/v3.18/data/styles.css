@@ -1,0 +1,116 @@
+
+<style type="text/css">
+.form-style-2{
+    font: 95% Arial, Helvetica, sans-serif;
+    max-width: 400px;
+    margin: 10px auto;
+    padding: 16px;
+    background: #F7F7F7;
+}
+.form-style-2 h1{
+	font: 140% Arial, Helvetica, sans-serif;
+	
+    background: #FFFF00;
+    padding: 20px;
+    font-size: 140%;
+	//max-width: 40%;
+	max-width: 30%;
+    font-weight: bold;
+    text-align: left;
+    color: #000000;
+    margin: 16px 16px 0px 0px;
+}
+
+
+.form-style-2 legend 
+{
+	font: 95% Arial, Helvetica, sans-serif;
+    max-width: 400px;
+	font-size: 140%;
+	font-weight: 500;
+    margin: 5px auto;
+    padding: 16px;
+}
+
+.form-style-2 fieldset 
+{
+	font-family: Arial, Helvetica, sans-serif;
+    max-width: 450px;
+	font-size: 100%;
+	font-weight: 300;
+    margin: 10px;
+    padding: 16px, 16px, 5px, 16px;
+	background: #F7F7F7;
+}
+
+.form-style-2 label{
+    display: block;
+    margin: 0px 0px 1px 0px;
+}
+.form-style-2 label > span{
+    width: 105px;
+    font-weight: bold;
+    float: left;
+    padding-top: 8px;
+    padding-right: 5px;
+}
+.form-style-2 span.required{
+    color:red;
+}
+.form-style-2 .tel-number-field{
+    width: 40px;
+    text-align: center;
+}
+.form-style-2 input.input-field{
+   // width: 48%;
+   
+}
+
+.form-style-2 input.input-field,
+.form-style-2 .tel-number-field,
+.form-style-2 .textarea-field,
+ .form-style-2 .select-field{
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    border: 1px solid #C2C2C2;
+    box-shadow: 1px 1px 4px #EBEBEB;
+    -moz-box-shadow: 1px 1px 4px #EBEBEB;
+    -webkit-box-shadow: 1px 1px 4px #EBEBEB;
+    border-radius: 3px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+    padding: 7px;
+    outline: none;
+	margin: 0px 0px 3px 0px;
+	
+}
+.form-style-2 .input-field:focus,
+.form-style-2 .tel-number-field:focus,
+.form-style-2 .textarea-field:focus,  
+.form-style-2 .select-field:focus{
+    border: 1px solid #0C0;
+}
+.form-style-2 .textarea-field{
+    height:100px;
+    width: 55%;
+}
+.form-style-2 input[type=submit],
+.form-style-2 input[type=button]{
+    border: none;
+    padding: 8px 15px 8px 15px;
+    background: #FF8500;
+    color: #fff;
+    box-shadow: 1px 1px 4px #DADADA;
+    -moz-box-shadow: 1px 1px 4px #DADADA;
+    -webkit-box-shadow: 1px 1px 4px #DADADA;
+    border-radius: 3px;
+    -webkit-border-radius: 3px;
+    -moz-border-radius: 3px;
+}
+.form-style-2 input[type=submit]:hover,
+.form-style-2 input[type=button]:hover{
+    background: #EA7B00;
+    color: #fff;
+}
+</style>

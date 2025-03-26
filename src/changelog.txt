@@ -1,0 +1,77 @@
+
+** R-IoT v3 changelog
+
+
+
+
+***********************************************
+** pre-release beta version 3.18.xxx
+***********************************************
+- added computation of gravity vector which is nothing else than quaternions before Euler angle conversion
+  allows for continuous data (no gimbal lock) over {-1;1} and modules orientation extraction (up, down, left,
+  right, front, rear)
+- re-ordered quaternions export to match W3C standard (X, Y, Z, W <=> q1, q2, q3, q0)
+- fixed mDNS, works for both Mac and Windows. Custom name available in config.txt, such as my-riot.local
+  suggestion : set your mDNS / Bonjour name with the module's ID : riot-0.local when using several R-IoT
+  on your LAN for easier identification. Works on both macOS and windows without further software install.
+  Avahi (https://github.com/christgau/wsdd#installation) or Bonjour (https://support.apple.com/fr-fr/106380) 
+  might be necessary on older windows machines
+- updated index.html + style.css for proper look on both safari and firefox, macOS & Windows
+- added OSC bundle class and split all data into various classes accelerometer, gyro, temperature etc
+  bundle forging costs only 56µs and is essentially a series of buffer copies to the bundle buffer
+- added computation of the gravity vector based on quaternion outputs from madgwick
+- raw sensor data are sent in m.s-2 (acc), °/s (gyro) and µTesla (=100 Gauss) as per W3C standard
+- adjusted heading calculation to match the swapped axis and ENU to NED frame (since it's based on 
+  madgwick pitch and roll calculations)
+- changed madgwick axis to have the W3C standard matching all orientations and signs.
+  raw data use a ENU frame (W3C) which is converted to NED for madgwick and heading calculations
+  (essentially swapping X and Y natural axis plus sign to preserve correct thumbness)
+  https://www.w3.org/TR/orientation-event/
+- added semantic versioning : major.minor.fix (B. Matuszewski)
+- Fixed reading mac address or SoftAP mac address to update the webpage while in config mode or forced config mode
+- Freed code from f_fat:getDrive (used default drive #0). Avoids dependencie of the modded default libray FATFS
+- Refactored the sensors reading thru SPI. ESP32 uses DMA for SPI and the cost for single byte transactions is 
+  huge (25µs) which makes traditionnal byte-per-byte reading super long. Instead, pre-filled transmission buffers
+  are now used to make a single <n-bytes> transactions which shriks sensors acquisition time by a factor of nearly 2.
+- Added serial commands 'battery' and 'usb' for live report of the battery & USB voltages.
+- Added charger handling using the 'charger' config parameter <0-1-2>. 0 makes the module always stream even if charging 
+  thru USB. 1 never streams if USB is plugged in. 2 streams only if the switch is in the on position, or displays charging
+  colors and pulses while off. Charging pulses purple, end of charge is static green.
+- Add config param 'ledcolor' to define the pixel color while streaming. Aside cosmetic choices, it allows
+  for reducing brightness or completely turning it off if it's needed during live performance
+  color can be specified in RGB or with the color name dictionnary (HTML color names)
+- Added serial command 'logmotion' <0/1> for live display of IMU's raw values in the serial console or the
+  arduino serial plotter.
+- Migrated the calibration state machine handling out of the motion class so that it can be remotely
+  triggered from the main loop, thru serial message or (upcoming) OSC messages + GO command.
+- Added driver for the BNO055 bosh sensortec IMU + Fusion (I2C). Laggy and terrible code, needs
+  personal refactor of the stock code which is compile-time / macro based programming.
+- Automatically ping sensors in I2C to detect mode (presence of external HW like BNO055)
+  add BNO055 support over I2C + class in sensors.cpp.
+- Added params 'baromode' and 'baroref' in config to define the sampling mode of the pressure sensor and 
+  its reference altitude in meters.
+- Created low level drivers for IMU and MAG + Baro/pressure sensor. Huge reduction of sensor's acquisition
+  time compared to community / OS drivers.
+- Added 'slowboot' serial command to delay the start/boot time of the module, so that user has time to open
+  the serial console for live debugging. Saved a non volatile parameter in EEPROM (flash). Do not use this command
+  in the config file.
+- Enabled EEPROM library to store non volatile parameters
+- Added parameters 'orientation' : defines NWU reference with right handedness for 4 different orientation
+  of the board (see readme.txt on the board's USB flashdrive contents)
+- Added 'calibration' (timer) parameter defining for how long calibration remains accessible at boot time
+  when pressing the option (on-board) switch
+- Added param 'declination' in the config file. Declination lookup and calculation instructions are available in the
+  readme.txt file of the board's flashdrive
+- Added 'calibrate' serial command to trigger calibration at any time using the USB serial port. To avoid touching
+  the board during calibration (by pressing the switch at each calibration stage), the 'GO' command can be used in place
+  to progress thru calibration.
+- Added box filter and median filter templates, available for filtering data (like the battery voltage)
+- Added orientation handling with axis swapping and signs handling prior calling the madgwick algorithm
+- Fixed heading calculation based on accelerometer de-rotation of the magnetometer (compass fusion)
+- Added parameter 'forceconfig' <0,1> which enables the config/update webserver on a R-IoT even when not in config mode, 
+  and streaming. Allows for an easier configuration/update while in dev mode
+- Added a modified version of Elegant OTA for over-the-air updates, HTML page was extracted from the source code to save
+  on app size and relocated / served as an external file on the USB flashdrive of the RIOT, which allows for customization.
+  Update is available on the R-IoT webserver when in config / AP mode at the URL http://192.168.3.1/update
+- Adjusted HTML page of the config webserver using proper JS / CSS
+- Added compile date/time defines to get a proper version string of the FW
