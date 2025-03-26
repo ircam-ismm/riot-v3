@@ -13,8 +13,8 @@
     background: #FFFF00;
     padding: 20px;
     font-size: 140%;
-	//max-width: 40%;
-	max-width: 30%;
+	max-width: 40%;
+	//max-width: 30%;
     font-weight: bold;
     text-align: left;
     color: #000000;
@@ -63,6 +63,7 @@
 }
 .form-style-2 input.input-field{
    // width: 48%;
+
    
 }
 
