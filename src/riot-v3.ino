@@ -1,12 +1,62 @@
 
-/* R-IoT :
+/* R-IoT v3 - FW of the 3rd generation Wireless WiFi OSC IMU Board - ESP32-S3 based MCU board
+   
+   Emmanuel FLETY - IRCAM - PIP Team / 2017-present 
+   
+   This firmware handles everything from sensor collection using low level drivers taking advantage of the ESP32-S3 DMA,
+   OSC encoding with low footprint libraries, sensor fusion using S. Madgwick's algorithm.
+   Copyright (c) 2014-present IRCAM – Centre Pompidou (France, Paris)
 
+    All rights reserved.
+
+    Emmanuel FLETY - IRCAM - PIP Team / 2017-2025 
+    
+    Redistribution and use in source and binary forms, with or without modification,
+    are permitted provided that the following conditions are met:
+    
+    * Redistributions of source code must retain the above copyright notice, this
+      list of conditions and the following disclaimer.
+    
+    * Redistributions in binary form must reproduce the above copyright notice, this
+      list of conditions and the following disclaimer in the documentation and/or
+      other materials provided with the distribution.
+    
+    * Neither the name of the IRCAM nor the names of its
+      contributors may be used to endorse or promote products derived from
+      this software without specific prior written permission.
+    
+    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+    ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+/*
+ *   UPDATE 10/07/2024 : works great with toolchain 3.0.2 - code size 52% + RAM 20%
+     UPDATE 15/01/2025 : works great with toolchain 3.1.1 - code size 54% (with OTA) + RAM 24%
+
+     ** Dev History
+    v3.0 : rough port of the CC3200 code to the ESP32 - Compiles initially with ESP32 toolchain 2.0.14
+     PSRAM : disabled
+     Code size :  42% (8MB) / RAM used : 21% (67k)
+    v3.1 : migrating all C code to C++ with split classes and global objects (including OSC)
+    v3.12 : moving forward with the new board, news sensors, OTA and more structure code
+    
+    Compilation target : ESP32-S3 dev module - USB Mode : USB-OTG / CDC on boot : enabled / DFU on boot : disabled / Upload Mode : USB-OTG(TinyUSB)
+    CPU frequency : 160 MHz (or 80 MHz) / Flash Mode : QIO 80 MHz / Flash Size : 8 MB / Partition : 8MB with FAT (2MB app / 3.7MB FFAT)
+  
   Todo : 
   
   - use vector arithmetics ?
   - add a HW timer for low jitter measurements and accurate integration delta T on gyros ?
   - Pixel could switch between blue and black at a constant period (based on sampleRate). Maybe a task on the other MCU core ?
 
+  have a concert mode that is less energy hungry and disables wifi in idle / hibernate, super low power
   
   add a help/usage/? command listing all the existing commands : could actually play a help page from the USB drive
   in the style of a man page. Could be a webpage. Could be a text page (on USB MSB) displayed thru serial, line by line
@@ -28,9 +78,6 @@
 
   auto-sleep mechanism to detect idle time after a while and go to sleep mode (reduced power) with auto wake up based on moves
 
-  experiment with updating the fw using the OTA API, but from the FFAT spi flash instead of the web OTA. Would allow for 
-  updating using the MSC flashdrive.
-
   have ALL config parameters parsed as OSC string routed from /id/msg => parsed by the serial command parser
   have calibration respond to OSC commands.
 
@@ -38,13 +85,7 @@
 
   check if we accept domain names / URL instead of the IP (in parseConfig())
 
-  PRIORITY : Add OSC Bundle
-
-  add OSC prefix in config file /riot - see if ID can become a string
-
   explore Websockets
-
-  export Gravity Vector
   
   test 2gauss range for magneto (better resolution for yaw/angles ?).
   add param for sending data with calibration offsets or without (motion class)
@@ -58,7 +99,6 @@
 
   create an HTML page that displays the graphs of the sensors in HTML5 
 
-  ADD  mDNS ??? => doesn't work for now
   local NTP server connection + OSC time tags ?
   check if AP can be started without passphrase just SSID + open network ? 
 
@@ -67,21 +107,8 @@
   add all analysis bricks (kick, tap, move, freefall etc + some of the Accel internal primitives)
   add 1€ filter algorithms in the bricks - combine with other low pass (Seb)
 
-  ** Dev History
-  v3.0 : rough port of the CC3200 code to the ESP32 - Compiles initially with ESP32 toolchain 2.0.14
-   PSRAM : disabled
-   Code size :  42% (8MB) / RAM used : 21% (67k)
-  v3.1 : migrating all C code to C++ with split classes and global objects (including OSC)
-  v3.12 : moving forward with the new board, news sensors, OTA and more structure code
-  
-  Compilation target : ESP32-S3 dev module - USB Mode : USB-OTG / CDC on boot : enabled / DFU on boot : disabled / Upload Mode : USB-OTG(TinyUSB)
-  CPU frequency : 160 MHz (or 80 MHz) / Flash Mode : QIO 80 MHz / Flash Size : 8 MB / Partition : 8MB with FAT (2MB app / 3.7MB FFAT)
-
   USE log_v for debug message using the verbose target in the compile options
 
-  UPDATE 10/07/2024 : works great with toolchain 3.0.2 - code size 52% + RAM 20%
-  UPDATE 15/01/2025 : works great with toolchain 3.1.1 - code size 54% (with OTA) + RAM 24%
- 
 */
 
 
@@ -153,10 +180,8 @@ void setup() {
   if (!FFat.begin()) {
     Serial.println("FFat Mount Failed - attempting format");
     FFat.format();
-    // Eventually set the label of the FAT volume (espressif ffconf.h doesn't have that by default)
-    //f_setlabel(DEFAULT_MSD_VOLUME_NAME);
     if (!FFat.begin()) {
-      //Serial0.println("FFat Mount Failed permanently");
+      Serial.println("FFat Mount Failed permanently");
       die();
     }
     restoreDefaults(true);

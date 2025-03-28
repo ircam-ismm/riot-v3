@@ -89,6 +89,16 @@ void wakeModemSleep() {
     //setCpuFrequencyMhz(80);
 }
 
+
+void format() {
+  FFat.format();
+  if (!FFat.begin()) {
+    Serial.println("FFat Mount Failed permanently");
+    die();
+  }
+  restoreDefaults(true);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////////
 // File & Dir handling + helpers
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels){

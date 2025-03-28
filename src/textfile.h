@@ -36,6 +36,7 @@
 #define TEXT_PASSWORD       "pass"
 #define TEXT_DHCP           "dhcp"
 #define TEXT_STANDALONE     "standalone"
+#define TEXT_FORMAT         "format"
 #define TEXT_SAVE_CONFIG    "savecfg"
 #define TEXT_GET_CONFIG     "cfgrequest"
 #define TEXT_PING           "ping"

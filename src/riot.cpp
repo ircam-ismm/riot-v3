@@ -23,6 +23,7 @@ riotCore::~riotCore() {
 
 void riotCore::init() {
   debugMode = false;
+  setSSID(DEFAULT_SSID);
   setOwnIP(defaultIP);
   setDestIP(defaultDestinationIP);
   setGatewayIP(defaultGatewayIP);
@@ -37,7 +38,7 @@ void riotCore::init() {
   channel = 0;  // auto channel after scan for the AP mode
   hidden = false; // visible wifi SSID by default
   RemoteOutputState = LOW;
-  chargingMode = CHARGE_ALWAYS_STREAM;
+  chargingMode = CHARGE_STREAM_IF_ON;
   ledColor = Blue;
 
   // Global SPI parameters (should work for all sensors)

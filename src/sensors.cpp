@@ -302,7 +302,7 @@ bool baro::begin(uint8_t pin) {
   }
 
   // Baro configuration
-  samplingMode = BARO_HIGH_PRECISION;
+  samplingMode = BARO_NORMAL_PRECISION2;
   bRes = 0.016f;    // Res over 21 bits - actual available bits depend on ODR / OSR
   refPressure = STANDARD_SEA_LEVEL_PRESSURE_PA;
   bWriteByte(BMP3XX_IF_CONF, 0b00000000);     // SPI 4-wire

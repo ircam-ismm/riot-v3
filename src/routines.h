@@ -36,6 +36,7 @@ uint8_t readChargeStatus(void);
 
 void setModemSleep();
 void wakeModemSleep();
+void format();
 
 // file & dir helpers
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels);

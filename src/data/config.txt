@@ -1,4 +1,4 @@
-//R-IoT Configuration - fw: IRCAM R-IoT-v3.18-07-02-2025-43109
+//R-IoT Configuration - fw: IRCAM R-IoT-3.18.3-26-03-2025-21430
 debug=0
 mode=0
 ssid=riot-lab
@@ -9,14 +9,14 @@ ownip=192.168.1.55
 destip=192.168.1.100
 gateway=192.168.1.1
 mask=255.255.255.0
-port=8888
+port=8000
 masterid=0
 power=8
 samplerate=5
 remote=1
 forceconfig=0
 calibration=5000
-charger=1
+charger=2
 ledcolor=0,5,10
 declination=1.830000
 orientation=1

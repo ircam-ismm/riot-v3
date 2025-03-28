@@ -105,9 +105,9 @@ extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
 
 // DEFAULTS
 #define DEFAULT_MSD_VOLUME_NAME   "RIOT3-MSD"
-#define DEFAULT_UDP_PORT          8888
+#define DEFAULT_UDP_PORT          8000
 #define DEFAULT_UDP_SERVICE_PORT  7777
-#define DEFAULT_SSID              "riot"
+#define DEFAULT_SSID              "riot-lab"
 #define DEFAULT_AP_PASSWORD       "riot1234"
 #define DEFAULT_SAMPLE_RATE       5
 #define DEFAULT_ID                0

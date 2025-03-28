@@ -420,7 +420,7 @@ private:
   uint8_t bReadByte(uint8_t subAddress);  
   uint8_t bReadBytes(uint8_t subAddress, uint8_t * dest, uint8_t count);
 
-  uint8_t samplingMode = BARO_HIGH_PRECISION;
+  uint8_t samplingMode = BARO_NORMAL_PRECISION2;
   uint32_t temperatureRaw;
   uint32_t pressureRaw;
   float bRes, pressure, refPressure, refAltitude, altitude, temperature;

@@ -668,6 +668,11 @@ bool parseConfigCallback(char *line) {
     restoreDefaults(false);
     return(true);
   }
+
+  else if(!strncmp(TEXT_FORMAT, line, strlen(TEXT_FORMAT))) {
+    format();
+    return(true);
+  }
   else if(!strncmp(TEXT_CALIBRATE, line, strlen(TEXT_CALIBRATE))) {
     // re enable calibration timer
     riot.setCalibrationTimer(riot.getCalibrationTimer());

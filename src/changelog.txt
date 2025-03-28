@@ -7,6 +7,9 @@
 ***********************************************
 ** pre-release beta version 3.18.xxx
 ***********************************************
+- flash drive fw update implemented : copy the fw to the R-IoT exposed flashdrive and rename it to update.bin
+  upon reset / power cycle, board will self update and ends by flashing white before reseting automatically
+  fw version is logged on the flashdrive in the file version.txt if update performed well.
 - added computation of gravity vector which is nothing else than quaternions before Euler angle conversion
   allows for continuous data (no gimbal lock) over {-1;1} and modules orientation extraction (up, down, left,
   right, front, rear)
