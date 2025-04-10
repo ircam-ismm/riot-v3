@@ -152,6 +152,47 @@ enum s_sensorConnectionMode {
 #define LSM6DS3_ACC_GYRO_MAG_OFFZ_L                   0x31
 #define LSM6DS3_ACC_GYRO_MAG_OFFZ_H                   0x32
 
+#define ACC_2G        2
+#define ACC_4G        4
+#define ACC_8G        8
+#define ACC_16G       16
+#define GYRO_250DPS   250
+#define GYRO_500DPS   500
+#define GYRO_1000DPS  1000
+#define GYRO_2000DPS  2000
+
+enum s_AccRange {
+  ACC_RANGE_2G = 0,
+  ACC_RANGE_16G,
+  ACC_RANGE_4G,
+  ACC_RANGE_8G
+};
+
+enum s_GyroRange {
+  GYRO_RANGE_250DPS = 0,
+  GYRO_RANGE_500DPS,
+  GYRO_RANGE_1000DPS,
+  GYRO_RANGE_2000DPS
+};
+
+enum s_AccRangeDsv {
+  ACC_RANGE_DSV_2G = 0,
+  ACC_RANGE_DSV_4G,
+  ACC_RANGE_DSV_8G,
+  ACC_RANGE_DSV_16G
+};
+
+enum s_GyroRangeDsv {
+  GYRO_RANGE_DSV_125DPS = 0,
+  GYRO_RANGE_DSV_250DPS,
+  GYRO_RANGE_DSV_500DPS,
+  GYRO_RANGE_DSV_1000DPS,
+  GYRO_RANGE_DSV_2000DPS,
+  GYRO_RANGE_DSV_4000DPS
+};
+
+
+
 ////////////////////////////////
 // LSM6D WHO_AM_I Responses   //
 ////////////////////////////////
@@ -176,6 +217,19 @@ enum s_sensorConnectionMode {
 #define LIS3MDL_REG_INT_THS_L   0x32    ///< Low byte of the irq threshold
 
 #define WHO_AM_I_LIS3MDL        0x3D
+
+
+#define MAG_4GAUSS    4
+#define MAG_8GAUSS    8
+#define MAG_12GAUSS   12
+#define MAG_16GAUSS   16
+
+enum s_MagRange {
+  MAG_RANGE_4GAUSS = 0,
+  MAG_RANGE_8GAUSS,
+  MAG_RANGE_12GAUSS,
+  MAG_RANGE_16GAUSS
+};
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // BMP390
@@ -280,11 +334,15 @@ public:
     void readTemp();
 
     // TODO
-    //void setAccRange();
-    //void setGyrRange();
+    void setAccRange(int range);
+    void setGyroRange(int range);
+    void setGyroHpf(bool hpf);
     //void setAccODR();
     //void setGyrODR();
 
+    int getAccRange() { return accRange; }
+    int getGyroRange() { return gyroRange; }
+    bool getGyroHpf() { return gyroHpf; }
     int16_t getAccX() { return accX.Value; }
     int16_t getAccY() { return accY.Value; }
     int16_t getAccZ() { return accZ.Value; }
@@ -303,6 +361,8 @@ private:
   Word accX, accY, accZ;
   Word gyrX, gyrY, gyrZ;
   Word temperature;
+  int accRange, gyroRange;
+  bool gyroHpf = false;
   
   bool _initialized = false;
   uint8_t _imuType = IMU_UNKNOWN;
@@ -315,10 +375,12 @@ public:
     void read();   // Read mag only
     void readTemp();
 
+    
+    void setRange(int range);
     // TODO
-    //void setMagRange();
     //void setMagODR();
 
+    int getRange() { return magRange; }
     int16_t getMagX() { return magX.Value; }
     int16_t getMagY() { return magY.Value; }
     int16_t getMagZ() { return magZ.Value; }
@@ -331,6 +393,7 @@ private:
 
   const uint8_t spiBufferOut[7] = {LIS3MDL_REG_OUT_X_L | MAG_READ_AND_AUTOINCREMENT, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   uint8_t spiBufferIn[10];
+  int magRange;
   Word magX, magY, magZ;
   Word temperature;
   
@@ -350,11 +413,13 @@ public:
     void calibrateTemp();    
 
     void setSamplingMode(uint8_t mode) {samplingMode = mode; applySamplingMode(); }
+    void setRange(int range);
     void applySamplingMode();
     void setOSR(uint8_t osr);
     void setODR(uint8_t odr);
     void setIIR(uint8_t iir);
 
+    int getRange() { return magRange; }
     float getPressure() { return pressure; }
     float getAltitude() { return altitude; }
     float getTemp() { return temperature; }
@@ -424,6 +489,8 @@ private:
   uint32_t temperatureRaw;
   uint32_t pressureRaw;
   float bRes, pressure, refPressure, refAltitude, altitude, temperature;
+
+  int magRange;
 
   const uint8_t spiBufferOut[8] = {BMP3XX_P_DATA_PA | READ_AND_AUTOINCREMENT, 0x00, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
   uint8_t spiBufferIn[10];

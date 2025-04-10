@@ -12,6 +12,10 @@ bool imu::begin(uint8_t pin) {
 
   // Performs default init
   Serial.printf("Init LSM6D IMU\n");
+
+  accRange = ACC_8G;
+  gyroRange = GYRO_2000DPS;
+  gyroHpf = false;
   
   // Check WHO-AM-I - Manufactured RIOT v3 units use a LSM6DSL which should reply with 0x6A
   uint8_t xgTest = xgReadByte(LSM6DS3_ACC_GYRO_WHO_AM_I_REG);
@@ -46,7 +50,7 @@ bool imu::begin(uint8_t pin) {
   if(_imuType == IMU_LSM6DSV) {
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL1_XL, 0b00001000);  // Accel Hi perf. mode / ODR 480 Hz 
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL2_G,  0b01101100);  // Accel Hi perf. mode / ODR 480 Hz
-    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL3_C, 0b00000100);   // No block update (continuous mode) + auto increment
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL3_C, 0b01000100);   // Block update + auto increment
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL4_C, 0b00000000);  // No interrupts
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL5_C, 0b00000000);
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL6_G, 0b00000100);  // 2000 °/s
@@ -56,8 +60,9 @@ bool imu::begin(uint8_t pin) {
   else {
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL1_XL, 0b01101100);  // ODR 416 Hz / +-8g / antialiazing filter 416 Hz (ODR based)   
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL2_G,  0b01101100);  // Gyro ODR 416 Hz / 2000°/s  
-    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL3_C, 0b00000100);  // No Block update / address auto inc (default)
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL3_C, 0b01000100);  // Use Block update / address auto inc (default)
     xgWriteByte(LSM6DS3_ACC_GYRO_CTRL4_C, 0b00000100);   // SPI only, no I2C, no bandwidth control (only ODR LPF) - LPF disabled
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL7_G, 0b00000000);  // No HPF
   }
 
   // Todo : test Gyro HPF (CTRL_7G) to see if we can get a better stability with the orientation filter
@@ -68,6 +73,149 @@ bool imu::begin(uint8_t pin) {
   }
  
   return _initialized;
+}
+
+void imu::setAccRange(int range) {
+  uint8_t reg, val;
+  if(_imuType == IMU_LSM6DSV) {
+    reg = xgReadByte(LSM6DS3_ACC_GYRO_CTRL8_XL);
+    reg = reg & 0b11111100;
+    accRange = range;
+    
+    switch(range) {
+      case ACC_2G:
+        val = ACC_RANGE_DSV_2G;
+        break;
+
+      case ACC_4G:
+        val = ACC_RANGE_DSV_4G;
+        break;
+
+      case ACC_8G:
+        val = ACC_RANGE_DSV_8G;
+        break;
+
+      case ACC_16G:
+        val = ACC_RANGE_DSV_16G;
+        break;
+
+      default:
+        accRange = ACC_8G;
+        val = ACC_RANGE_DSV_8G;
+        break;
+    }
+    reg = reg | val;
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL8_XL, reg);
+  }
+  else {
+    reg = xgReadByte(LSM6DS3_ACC_GYRO_CTRL1_XL);
+    reg = reg & 0b11110011;
+    accRange = range;
+    
+    switch(range) {
+      case ACC_2G:
+        val = ACC_RANGE_2G;
+        break;
+
+      case ACC_4G:
+        val = ACC_RANGE_4G;
+        break;
+
+      case ACC_8G:
+        val = ACC_RANGE_8G;
+        break;
+
+      case ACC_16G:
+        val = ACC_RANGE_16G;
+        break;
+
+      default:
+        accRange = ACC_8G;
+        val = ACC_RANGE_8G;
+        break;
+    }
+    reg = reg | (val<<2);
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL1_XL, reg);
+  }
+}
+    
+void imu::setGyroRange(int range) {
+  uint8_t reg, val;
+
+  if(_imuType == IMU_LSM6DSV) {
+    reg = xgReadByte(LSM6DS3_ACC_GYRO_CTRL6_G);
+    reg = reg & 0b11111100;
+    gyroRange = range;
+    
+    switch(range) {
+      case GYRO_250DPS:
+        val = GYRO_RANGE_DSV_250DPS;
+        break;
+
+      case GYRO_500DPS:
+        val = GYRO_RANGE_DSV_500DPS;
+        break;
+
+      case GYRO_1000DPS:
+        val = GYRO_RANGE_DSV_1000DPS;
+        break;
+
+      case GYRO_2000DPS:
+        val = GYRO_RANGE_DSV_2000DPS;
+        break;
+
+      default:
+        gyroRange = GYRO_2000DPS;
+        val = GYRO_RANGE_DSV_2000DPS;
+        break;
+    }
+    reg = reg | val;
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL6_G, reg);    
+  }
+  else {
+    reg = xgReadByte(LSM6DS3_ACC_GYRO_CTRL2_G);
+    reg = reg & 0b11110011;
+    gyroRange = range;
+    
+    switch(range) {
+      case GYRO_250DPS:
+        val = GYRO_RANGE_250DPS;
+        break;
+
+      case GYRO_500DPS:
+        val = GYRO_RANGE_500DPS;
+        break;
+
+      case GYRO_1000DPS:
+        val = GYRO_RANGE_1000DPS;
+        break;
+
+      case GYRO_2000DPS:
+        val = GYRO_RANGE_2000DPS;
+        break;
+
+      default:
+        gyroRange = GYRO_2000DPS;
+        val = GYRO_RANGE_2000DPS;
+        break;
+    }
+    reg = reg | (val<<2);
+    xgWriteByte(LSM6DS3_ACC_GYRO_CTRL2_G, reg);
+  }  
+}
+
+void imu::setGyroHpf(bool hpf) {
+  uint8_t reg, val;
+  gyroHpf = hpf;
+  if(_imuType == IMU_LSM6DSV) {
+    // Not available
+  }
+  else {
+    reg = xgReadByte(LSM6DS3_ACC_GYRO_CTRL7_G);
+    reg = reg & 0b10111111;
+    val = ((uint8_t)hpf) << 6;
+    reg = reg | val;
+  }
 }
 
 void imu::xgWriteByte(uint8_t subAddress, uint8_t data) {
@@ -147,27 +295,6 @@ void imu::read() {
   // Transaction time is huge on the EPS32 (about 24µs). It's more interesting to have grouped data
   // within a single transaction to reduce acquisition time of the sensors
   digitalWrite(_pin, LOW);
-  /*SPI.transfer(LSM6DS3_ACC_GYRO_OUT_TEMP_L | READ_AND_AUTOINCREMENT);
-  temperature.Val[0] = SPI.transfer(0xFF);
-  temperature.Val[1] = SPI.transfer(0xFF);
-
-  gyrX.Val[0] = SPI.transfer(0xFF);
-  gyrX.Val[1] = SPI.transfer(0xFF);
-
-  gyrY.Val[0] = SPI.transfer(0xFF);
-  gyrY.Val[1] = SPI.transfer(0xFF);
-  
-  gyrZ.Val[0] = SPI.transfer(0xFF);
-  gyrZ.Val[1] = SPI.transfer(0xFF);
-
-  accX.Val[0] = SPI.transfer(0xFF);
-  accX.Val[1] = SPI.transfer(0xFF);
-
-  accY.Val[0] = SPI.transfer(0xFF);
-  accY.Val[1] = SPI.transfer(0xFF);
-  
-  accZ.Val[0] = SPI.transfer(0xFF);
-  accZ.Val[1] = SPI.transfer(0xFF);*/
   SPI.transferBytes(spiBufferOut, spiBufferIn, 15);
   temperature.Val[0] = spiBufferIn[1];
   temperature.Val[1] = spiBufferIn[2];
@@ -200,6 +327,8 @@ bool mag::begin(uint8_t pin) {
   pinMode(_pin,OUTPUT);
   digitalWrite(_pin, HIGH);
 
+  magRange = MAG_4GAUSS;
+
   // Performs default init
   Serial.printf("Init LIS3MDL Mag sensor\n");
   // Check WHO-AM-I - Manufactured RIOT v3 units use a LIS3MDL which should reply with 0x3D
@@ -215,10 +344,45 @@ bool mag::begin(uint8_t pin) {
   mWriteByte(LIS3MDL_REG_CTRL_REG2, 0b00000000); // Full scale, +- 4 Gauss
   mWriteByte(LIS3MDL_REG_CTRL_REG3, 0b00000000); // SPI 4 wires, continuous conversion (fast ODR)
   mWriteByte(LIS3MDL_REG_CTRL_REG4, 0b00001000); // Z axis Hi Perf + BLE 0
-  mWriteByte(LIS3MDL_REG_CTRL_REG5, 0b00000000); // Block update = 0 (continous update)
+  //mWriteByte(LIS3MDL_REG_CTRL_REG4, 0b00001100); // Z axis Utra Hi Perf + BLE 0
+  mWriteByte(LIS3MDL_REG_CTRL_REG5, 0b01000000); // Block update = 1 (avoids MSB/LSB glitches)
      
   return _initialized;
 }
+
+
+void mag::setRange(int range) {
+  uint8_t reg, val;
+  reg = mReadByte(LIS3MDL_REG_CTRL_REG2);
+  reg = reg & 0b10011111;
+  magRange = range;
+  
+  switch(range) {
+    case MAG_4GAUSS:
+      val = MAG_RANGE_4GAUSS;
+      break;
+
+    case MAG_8GAUSS:
+      val = MAG_RANGE_8GAUSS;
+      break;
+
+    case MAG_12GAUSS:
+      val = MAG_RANGE_12GAUSS;
+      break;
+
+    case MAG_16GAUSS:
+      val = MAG_RANGE_16GAUSS;
+      break;
+
+    default:
+      magRange = MAG_4GAUSS;
+      val = MAG_RANGE_4GAUSS;
+      break;
+  }
+  reg = reg | (val<<5);
+  mWriteByte(LIS3MDL_REG_CTRL_REG2, reg);
+}  
+
 
 void mag::mWriteByte(uint8_t subAddress, uint8_t data) {
      digitalWrite(_pin, LOW); // Initiate communication
@@ -262,16 +426,7 @@ void mag::read() {
   
   magZ.Val[0] = spiBufferIn[5];
   magZ.Val[1] = spiBufferIn[6];
-  /*SPI.transfer(LIS3MDL_REG_OUT_X_L | MAG_READ_AND_AUTOINCREMENT);
-  magX.Val[0] = SPI.transfer(0xFF);
-  magX.Val[1] = SPI.transfer(0xFF);
-
-  magY.Val[0] = SPI.transfer(0xFF);
-  magY.Val[1] = SPI.transfer(0xFF);
-  
-  magZ.Val[0] = SPI.transfer(0xFF);
-  magZ.Val[1] = SPI.transfer(0xFF);*/
-  
+    
   digitalWrite(_pin, HIGH);
 }
 

@@ -9,6 +9,8 @@
 
 #include <Arduino.h>
 #include <stdarg.h>
+#include <esp_wifi.h>
+#include "driver/adc.h"
 #include "main.h"
 #include "textfile.h"
 #include "riot.h"
@@ -28,6 +30,8 @@ void printToOSC(char *StringMessage);
 void die();
 void restoreDefaults(bool save = false);
 void reset();
+bool autoTest();
+float clipData(float val, float analogScale, int scopeScale);
 
 int readBatteryRaw(void);
 float readBatteryVoltage(void);
@@ -36,6 +40,8 @@ uint8_t readChargeStatus(void);
 
 void setModemSleep();
 void wakeModemSleep();
+void setWiFiPowerSavingMode();
+void disableWiFi();
 void format();
 
 // file & dir helpers

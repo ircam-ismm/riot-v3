@@ -101,6 +101,7 @@ class Simple_BNO055 : public Simple_Wire {
 	float mag[3];
     int32_t quat[4];
 	int16_t magCount[3];    // Stores the 16-bit signed magnetometer sensor output
+	uint8_t orientation;
 
     //Startup Functions MPU
     Simple_BNO055(); // Constructor
@@ -108,6 +109,7 @@ class Simple_BNO055 : public Simple_Wire {
     Simple_BNO055 & begin(int sdaPin = 0, int sclPin = 1);
     Simple_BNO055 & Initialize();
     Simple_BNO055 & Set_Mode(uint8_t Operating_Mode);
+	Simple_BNO055 & SetPos(uint8_t orient);
     Simple_BNO055 & Get_Values(double *Value, uint8_t Type);
     uint8_t TestConnection(bool Verbose = false);
     uint8_t Check_SelfTest(bool Verbose = 1,bool StopHere = 1);

@@ -1,15 +1,13 @@
 
 /* R-IoT v3 - FW of the 3rd generation Wireless WiFi OSC IMU Board - ESP32-S3 based MCU board
    
-   Emmanuel FLETY - IRCAM - PIP Team / 2017-present 
+   Emmanuel FLETY - IRCAM - PIP Team
    
    This firmware handles everything from sensor collection using low level drivers taking advantage of the ESP32-S3 DMA,
    OSC encoding with low footprint libraries, sensor fusion using S. Madgwick's algorithm.
    Copyright (c) 2014-present IRCAM – Centre Pompidou (France, Paris)
 
     All rights reserved.
-
-    Emmanuel FLETY - IRCAM - PIP Team / 2017-2025 
     
     Redistribution and use in source and binary forms, with or without modification,
     are permitted provided that the following conditions are met:
@@ -57,17 +55,27 @@
   - Pixel could switch between blue and black at a constant period (based on sampleRate). Maybe a task on the other MCU core ?
 
   have a concert mode that is less energy hungry and disables wifi in idle / hibernate, super low power
+  param to define dozing of the CPU 80/160/240MHz (changes current usage of 10mA and board temp +5° @240 MHz)
+  but computations go down to 1.32ms instead of 2ms !!!
   
   add a help/usage/? command listing all the existing commands : could actually play a help page from the USB drive
   in the style of a man page. Could be a webpage. Could be a text page (on USB MSB) displayed thru serial, line by line
 
   Build a test jig with pogo. Test automated upload method using GPIO Zero and the regular UART to avoid plugging USB and having
   a single COM port to deal with. Test the DTR method and the 2 transistors like a regular ESP32 to see if it works. Make a test bed program
+
+  code an autotest for the board : test sensors, fat, I/O, ADC, pixel (rainbow)
+
+  add a gyro noisegate + test gyro HPF : decides whether to update madgwick or not if below threshold (gyro norm)
+  => Update madgwick but don't update the resulting angles if < gyro gate
+
+  have a dynamic beta when gyro spin, with decay like during boot, using the linear interpolator (convergence over XX duration, like 1s)
+
+  See how it goes with live update of the magnetometers offsets to avoid relying on calibration. Export a confidence / accurary score with the Euler
+  to define if the bias are changing drastically or not. The default hard iron are still being calibrated along with the soft iron, stored, and 
+  recalled dynamically at boot time and are used as start point, then their drift is analyzed in real time.
   
   param : useMagneto. Automatically switches between madgwick and mahony filter.
-
-  param to define dozing of the CPU 80/160/240MHz (changes current usage of 10mA and board temp +5° @240 MHz)
-  but computations go down to 1.32ms instead of 2ms !!!
 
   integrate an autofw update by connecting to internet to the github repo then lauch elegantOTA
 
@@ -86,8 +94,7 @@
   check if we accept domain names / URL instead of the IP (in parseConfig())
 
   explore Websockets
-  
-  test 2gauss range for magneto (better resolution for yaw/angles ?).
+ 
   add param for sending data with calibration offsets or without (motion class)
   add proper soft+hard iron calibration and compensation
   perform basic live calibration of hard iron for mag. Maybe BNO055 does that live and detects pertubations of the mag field => new calib
@@ -134,8 +141,6 @@ static const uint32_t DISK_SECTOR_COUNT = 947; // We have 4096 bytes sectors wit
 static const uint16_t DISK_SECTOR_SIZE = FF_SS_WL;    // Should be 512 for SD but here we have 4096 bytes per flash page
 USBMSC MSC;
 
-//void usbEventCallback(void* arg, esp_event_base_t event_base, int32_t event_id, void* event_data);
-
 // OLED 128x64 pixels support
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, U8X8_PIN_NONE);
 
@@ -147,10 +152,12 @@ WebServer httpServer(HTTP_SERVER_PORT);   // This is the configuration webserver
 WiFiClient client;
 WiFiUDP udpPacket;
 WiFiUDP configPacket;
+
 // The number 1024 between the < > below  is the maximum number of bytes reserved for incomming messages.
 // Outgoing messages are written directly to the output and do not need more reserved bytes.
 // Review this to have the configuration (IP, port) reworked
 MicroOscUdp<1024> oscUdp(&configPacket, defaultIP, DEFAULT_UDP_PORT);
+void receivedOscMessage( MicroOscMessage& message);
 
 
 /////////////////////////////////////////////////////////////////
@@ -170,6 +177,10 @@ void setup() {
   Serial.setDebugOutput(false);   // Ensures that Serial.printf doesn't locks when CDC port is closed
   Serial.begin(115200);
   //delay(2000);
+
+  u8g2.begin();
+  u8g2.clearBuffer();
+  u8g2.clearDisplay();
 
   riot.init();
   xTimerSwitches = xTimerCreate("switch_poll_timer",SWITCH_POLLING_PERIOD, pdTRUE, 0, timerCallback);
@@ -297,16 +308,7 @@ void loop() {
     if (riot.isOSCinput()) {
       //Serial.println("osc in check");
       // Parses incoming OSC messages
-      // use microUDP class to detect remote control message to control PWM or I/O
-      oscUdp.receiveMessages( receivedOscMessage );
-      // Debug OSC message
-      /*size_t packetLength = configPacket.parsePacket();
-      if ( packetLength > 0 ) {
-        //packetLength = udp->read(inputBuffer, MICRO_OSC_IN_SIZE);
-        Serial.print("Received UDP bytes: ");
-        Serial.println(packetLength);
-      }*/
-  
+      oscUdp.receiveMessages( receivedOscMessage );  
     }
   } // end of IF RIOT IS !config (ie. normal use of sensors digitzing & OSC export)
 
@@ -353,6 +355,73 @@ void loop() {
         serialIndex = 0;
     }
   } // End of Serial processing / parsing
+}
+
+
+// Todo : use callbacks
+void receivedOscMessage( MicroOscMessage& message) {
+  int32_t firstArgument;
+  char line[MAX_STRING_LEN];
+  
+  if(message.fullMatch("/output", "i") ) {
+    firstArgument = message.nextAsInt();
+    firstArgument = constrain(firstArgument, false, true);
+
+    //Serial.print("DEBUG /output/i ");
+    digitalWrite(REMOTE_OUTPUT, firstArgument);
+    return;
+  }
+  else if(message.fullMatch("/pwm", "i") ) {
+    firstArgument = message.nextAsInt();
+    firstArgument = constrain(firstArgument, 0, 255);
+    //Serial.print("DEBUG /output/i ");
+    analogWrite(REMOTE_OUTPUT, firstArgument);
+    return;
+  }
+  else if(message.fullMatch(riot.getOscAddress(), "s") ) {
+    strcpy(line, message.nextAsString());
+    // Parsing message commands
+    if(!strncmp(TEXT_PING, line, strlen(TEXT_PING))) {
+      Serial.printf("%s\n", TEXT_ECHO);
+      printToOSC(TEXT_ECHO);
+      return;
+    }
+    else if(!strncmp(TEXT_GO_COMMAND, line, strlen(TEXT_GO_COMMAND))) {
+      printToOSC("Next Step");
+      motion.nextStep(true);  // Proceed with calibration - emulates the switch press
+      return;
+    }
+    else if(!strncmp(TEXT_CANCEL_COMMAND, line, strlen(TEXT_CANCEL_COMMAND))) {
+      printToOSC("Cancelling operation");
+      motion.cancel(true);  // Cancel calibration - emulates the switch press
+      return;
+    }
+    else if(!strncmp(TEXT_AUTOCAL_MAG, line, strlen(TEXT_AUTOCAL_MAG))) {
+      printToOSC("Starting Mag Calibration");
+      motion.runAutoCalMag();
+      return;
+    }
+    else if(!strncmp(TEXT_AUTOCAL_MOTION, line, strlen(TEXT_AUTOCAL_MOTION))) {  
+      printToOSC("Starting Acc-Gyro Calibration");  
+      motion.runAutoCalMotion();
+      return;
+    }
+    else if(!strncmp(TEXT_SAVE_CONFIG, line,strlen(TEXT_SAVE_CONFIG))) { // Saves config to FLASH
+      storeConfig();
+      printToOSC("Config saved");
+      return;
+    }
+    else if(!strncmp(TEXT_REBOOT, line,strlen(TEXT_REBOOT))) { // Saves config to FLASH
+      // Reboot is needed to use new settings - force reboot with the watchdog or another technique or wait for the reset command
+      printToOSC("Reboot module");
+      reset();
+      return;
+    }
+    // implement getIP, wifi RSSI etc.
+  }
+  else {
+    Serial.printf("[RX] Wrong OSC syntax\n");
+  }
 }
 
 

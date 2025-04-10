@@ -2,6 +2,26 @@
 ** R-IoT v3 changelog
 
 
+***********************************************
+** v3.19.000 10/04/2025  56% flash
+***********************************************
+- Added autotest function for production. Tests most of the HW aspects of the board (WIP)
+- gyro OSC export order back to x-y-z
+- Fixed many calculations in quat's to Euler, included ZYX (standard) and ZXY order with automatic
+  switch depending if a BNO055 is found on I2C, makes Euler data compatible between onboard fusion and BNO fusion
+- Fixed Heading calculation
+- Calculus optimization for Euler angles
+- Enabled block update for sensors reading (acc-gyro and mag) to suppress MSB-LSB risks of glitching
+- Added OSC input messages to start acc/gyro or mag calibrations, remotely from the computer + spheroïd display (max/msp)
+- New max/msp abstraction to handle the reception and display of R-IoT sensors + routing + fusion calibration
+- Added 'gyrogate' parameter to define stillness / quietness level for the madgwick algorithm computation (freezes euler updates)
+- Added acc, gyro and mag ranges as parameters in the configuration file 
+- Beta interpolator to start from a high value (fast convergence using mag+acc) to the target value of the configuration file, over 1 second
+- Added parameters 'cpu' and 'doze' to define the CPU frequency during computation and while not computing, to save power. Available values
+  are 80, 160 and 240 (MHz)
+- Soft Iron matrix calibration and computation along with the Hard Iron offsets computed with the min/max method
+- Max abstraction now uses quaternion to render the 3D model (selectable)
+
 
 
 ***********************************************

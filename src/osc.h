@@ -36,11 +36,6 @@
 
 
 #include "main.h"
-// light OSC parser / Micro OSC
-#include <MicroOscUdp.h>
-
-extern MicroOscUdp<1024> oscUdp;
-void receivedOscMessage( MicroOscMessage& message);
 
 //#define DEBUG_OSC     1
 
@@ -108,7 +103,7 @@ private:
 
 extern simpleBundle bundleOSC;
 extern simpleOSC rawSensors;
-extern simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055OSC;
+extern simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
 extern simpleOSC printOscMessage;
 
 

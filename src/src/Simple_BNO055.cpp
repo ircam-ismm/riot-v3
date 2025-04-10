@@ -21,6 +21,10 @@
   THE SOFTWARE.
   ===============================================
 */
+
+// The whole driver is ill-coded as macros totally prevent from changing BNO parameters live from variables or confiuration
+// file => should be rewritten with a dynamic style and no dependencies from SimpleWire
+
 #include "Arduino.h"
 #include <Wire.h>
 #include "Simple_Wire.h"
@@ -30,6 +34,12 @@
 
 // Blink Without Delay Serial Port Spam Timer Macro
 #define spamtimer(t) for (static uint32_t SpamTimer; (uint32_t)(millis() - SpamTimer) >= (t); SpamTimer = millis()) // A Way to do a Blink without Delay timer
+
+
+
+static uint8_t posArray[8][2] = {{0x21, 0x04}, {0x24, 0x00}, {0x24, 0x06}, {0x21, 0x02}, {0x24, 0x03}, {0x21, 0x01}, {0x21, 0x07}, {0x24, 0x05}};
+
+
 
 /**
 @brief      Initialization functions
@@ -62,18 +72,31 @@ Simple_BNO055 & Simple_BNO055::Initialize(){
     Serial.println(Data,BIN);
     //W_AXIS_MAP(POS1); // default
 	W_AXIS_MAP(POS0); // POS0~POS7 3.4 Axis remap BNO055 Data sheet Page 25 
+	orientation = 0;
  //   Check_SelfTest();
     return *this;
 }
+
+Simple_BNO055 & Simple_BNO055::SetPos(uint8_t orient){
+	//W_AXIS_MAP(posArray); // POS0~POS7 3.4 Axis remap BNO055 Data sheet Page 25 
+	orientation = orient;
+	orientation = constrain(orientation, 0, 7);
+	//uint8_t *pF = &(posArray[0][orient]);
+	W_OPR_MODE(CONFIGMODE);
+	PG(0);
+	WriteByte(0x41, (uint8_t)posArray[orientation][0]);
+	Delay(10);
+	WriteByte(0x42, (uint8_t)posArray[orientation][1]);
+	Delay(10); //   Remapped  axis Values & signs
+	return *this;	
+}
+
+
 Simple_BNO055 & Simple_BNO055::Set_Mode(uint8_t Operating_Mode){
     W_OPR_MODE(Operating_Mode);
        return *this;
 }
 
-/*Simple_BNO055 & Simple_BNO055::Set_Pos(uint8_t *_POS){
-     W_AXIS_MAP(_POS);
-     return *this;
-}*/
 ;
 
 /* Get_Values() Type options:
@@ -171,7 +194,7 @@ Simple_BNO055 & Simple_BNO055::Get_Values(double *Value, uint8_t Type){
         Value[0] = ((double)((int16_t)Data[0])) * M;
         Value[1] = ((double)((int16_t)Data[1])) * M;
         Value[2] = ((double)((int16_t)Data[2])) * M;
-        Value[2] = ((double)((int16_t)Data[3])) * M;
+        Value[3] = ((double)((int16_t)Data[3])) * M;
         break;
     }
     

@@ -22,6 +22,10 @@ extern IPAddress defaultDestinationIP;
 #define POLL_CHARGER_UPDATE       1000    // ms
 #define SWITCH_POLLING_PERIOD     10      // ms
 
+#define DEFAULT_CPU_SPEED         240     // MHz
+#define DEFAULT_CPU_DOZE          80      // MHz
+
+
 #define NO_USB_VOLTAGE_THRESHOLD  3.0f    // volts
 
 // Slowboot parameter stored in EEPROM (emulated by internal flash)
@@ -152,6 +156,8 @@ public:
   IPAddress& getAPIP() { return accessPointIP; }
   
   uint16_t getDestPort() { return destPort; }
+  uint16_t getReceivePort() { return receivePort; }
+  
   bool getOperatingMode() { return operatingMode; }
   uint8_t getID() { return moduleID; }
   uint8_t* getMac() { return mac; }
@@ -162,6 +168,9 @@ public:
   uint8_t getChargingState() { return chargingStateMachine; }
   uint8_t getOperationState() { return operationStateMachine; }
   CRGBW8& getPixelColor() { return ledColor; }
+  int getCpuSpeed() { return cpuSpeed; }
+  int getCpuDoze() { return cpuDoze; }
+  char* getOscAddress() { return oscAddressString; }
   void updateStreaming(CRGBW8 color);
   bool pollChargerPlugged();
 
@@ -172,6 +181,7 @@ public:
   void setAPIP(IPAddress ip) {accessPointIP = ip;}
   void setID(uint8_t id) { moduleID = id; }
   void setDestPort(uint16_t port) { destPort = port; }
+  void setReceivePort(uint16_t port) { receivePort = port; }
   void setSSID(char *newSSID) { memset(ssid, '\0', sizeof(ssid)); strcpy(ssid, newSSID); }
   void setPassword(char *newPass) { memset(password, '\0', sizeof(password)); strcpy(password, newPass); }
   void setUseDHCP(bool dhcp) { useDHCP = dhcp; }
@@ -182,6 +192,8 @@ public:
   void setCalibrationTimer(int val) { calibrationCountdown = val; calibrationTimer = millis(); if(val) calibrationEnabled = true; }
   void setChargingMode(uint8_t mode) { chargingMode = mode; }
   void setWifiPower(wifi_power_t power) { wifiPower = power; }
+  void setCpuSpeed(int speed) { cpuSpeed = speed; }
+  void setCpuDoze(int speed) { cpuDoze = speed; }
   void setSlowBoot(uint32_t del) { slowBoot = del; }
   bool isStation() { return operatingMode == STATION_MODE; }
   void setState(uint8_t state) { state = constrain(state, RIOT_DISCONNECTED, RIOT_LOST_CONNECTION); stateMachine = state; }
@@ -230,13 +242,14 @@ private:
   char ssid[32];
   char ssidAP[32];
   char password[32] = "";
-  char mdnsName[32] = "riot";
+  char mdnsName[32] = DEFAULT_MDNS;
   IPAddress localIP;
   IPAddress accessPointIP;
   IPAddress subnetMask;
   IPAddress gatewayIP;
   IPAddress destIP;
   uint16_t destPort;
+  uint16_t receivePort;
   uint8_t moduleID;
   int channel;
   bool hidden;
@@ -247,6 +260,8 @@ private:
   bool forceConfigMode = false;
   bool acceptOSCin = true;
   bool debugMode = false;
+  int cpuSpeed = DEFAULT_CPU_SPEED;
+  int cpuDoze = DEFAULT_CPU_DOZE;
   int connectingTimer = 0;
   int pollingTimer = 0;
   int chargingTimer = 0;
@@ -283,6 +298,7 @@ private:
   char versionString[80];
   char fwString[20];
   char dateString[20];
+  char oscAddressString[20];
   bool _bno055Flag = false;
   bool _oledFlag = false;
 

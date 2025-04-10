@@ -291,6 +291,8 @@ bool parseConfigCallback(char *line) {
     tempIP = riot.getSubnetMask();
     Serial.printf("%s %u.%u.%u.%u\n", TEXT_MASK, tempIP[0], tempIP[1], tempIP[2], tempIP[3] );
     Serial.printf("%s %u\n", TEXT_PORT, riot.getDestPort());
+    Serial.printf("%s %u\n", TEXT_RECEIVE_PORT, riot.getReceivePort());
+
     Serial.printf("%s %u\n", TEXT_MASTER_ID, riot.getID());
     Serial.printf("%s %u\n", TEXT_SAMPLE_RATE, motion.getSampleRate());
     Serial.printf("%s %d\n", TEXT_WIFI_POWER, riot.getWifiPower());
@@ -298,14 +300,25 @@ bool parseConfigCallback(char *line) {
     Serial.printf("%s %u\n", TEXT_FORCE_CONFIG, riot.isForcedConfig());
     Serial.printf("%s %u\n", TEXT_CALIBRATION, riot.getCalibrationTimer());
     Serial.printf("%s %u\n", TEXT_CHARGE_MODE, riot.getChargingMode());
+
+    Serial.printf("%s %u\n", TEXT_CPU_SPEED, riot.getCpuSpeed());
+    Serial.printf("%s %u\n", TEXT_CPU_DOZE, riot.getCpuDoze());
+    
     Serial.printf("%s %f\n", TEXT_DECLINATION, motion.getDeclination());
     Serial.printf("%s %u\n", TEXT_ORIENTATION, motion.getOrientation());
+    Serial.printf("%s %u\n", TEXT_BNO_ORIENT, bno055.orientation);
+
+    Serial.printf("%s %u\n", TEXT_ACC_RANGE, lsm6d.getAccRange());
+    Serial.printf("%s %u\n", TEXT_GYRO_RANGE, lsm6d.getGyroRange());
+    Serial.printf("%s %u\n", TEXT_MAG_RANGE, lis3mdl.getRange());
+    Serial.printf("%s %f\n" ,TEXT_GYRO_GATE, motion.getGyroGate());
+    Serial.printf("%s %u\n", TEXT_GYRO_HPF, lsm6d.getGyroHpf());
+  
     Serial.printf("%s %u\n", TEXT_BARO_MODE, bmp390.getSamplingMode());
     Serial.printf("%s %f\n", TEXT_BARO_REF, bmp390.getRefAltitude());    
     Serial.printf("%s %u\n", TEXT_SLOW_BOOT, riot.getSlowBoot());
     Serial.printf("%s ", TEXT_LED_COLOR); riot.getPixelColor().print();
-        
-    
+          
     // All offsets as lists + rotation matrix
     Serial.printf("%s %d\n", TEXT_ACC_OFFSETX, motion.getAccelBiasRaw(X_AXIS));
     Serial.printf("%s %d\n", TEXT_ACC_OFFSETY, motion.getAccelBiasRaw(Y_AXIS));
@@ -317,7 +330,16 @@ bool parseConfigCallback(char *line) {
     
     Serial.printf("%s %d\n", TEXT_MAG_OFFSETX, motion.getMagBiasRaw(X_AXIS));
     Serial.printf("%s %d\n", TEXT_MAG_OFFSETY, motion.getMagBiasRaw(Y_AXIS));
-    Serial.printf("%s %d\n", TEXT_MAG_OFFSETZ, motion.getMagBiasRaw(Z_AXIS));   
+    Serial.printf("%s %d\n", TEXT_MAG_OFFSETZ, motion.getMagBiasRaw(Z_AXIS));
+
+    // Soft Iron Matrix
+    float *pVect;
+    pVect = motion.getSoftIronMatrixRow(X_AXIS);
+    Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX1, pVect[0], pVect[1], pVect[2]);
+    pVect = motion.getSoftIronMatrixRow(Y_AXIS);
+    Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX2, pVect[0], pVect[1], pVect[2]);
+    pVect = motion.getSoftIronMatrixRow(Z_AXIS);
+    Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX1, pVect[0], pVect[1], pVect[2]);
    
     Serial.printf("%s %f\n", TEXT_BETA, motion.getBeta()); 
       
@@ -337,7 +359,7 @@ bool parseConfigCallback(char *line) {
 
   // Ping / Echo question/answer from the GUI
   else if(!strncmp(TEXT_PING, line, strlen(TEXT_PING))) {
-    Serial.printf("echo\n");  // a simple ASCII echo answer to let the GUI know the COM port is the right one
+    Serial.printf("%s\n", TEXT_ECHO);  // a simple ASCII echo answer to let the GUI know the COM port is the right one
     return true;
   }
 
@@ -440,6 +462,15 @@ bool parseConfigCallback(char *line) {
     
     return(true);
   } 
+  else if(!strncmp(TEXT_RECEIVE_PORT, line, strlen(TEXT_RECEIVE_PORT))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    riot.setReceivePort(val);
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_RECEIVE_PORT, riot.getReceivePort());
+    
+    return(true);
+  } 
   else if(!strncmp(TEXT_MASTER_ID, line, strlen(TEXT_MASTER_ID))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -457,7 +488,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_SAMPLE_RATE, motion.getSampleRate());
     return(true);
   } 
-
   else if(!strncmp(TEXT_REMOTE, line, strlen(TEXT_REMOTE))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -467,7 +497,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_REMOTE, riot.isOSCinput());
     return(true);
   } 
-
   else if(!strncmp(TEXT_FORCE_CONFIG, line, strlen(TEXT_FORCE_CONFIG))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -477,7 +506,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_FORCE_CONFIG, riot.isForcedConfig());
     return(true);
   } 
-
   else if(!strncmp(TEXT_WIFI_POWER, line, strlen(TEXT_WIFI_POWER))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -487,7 +515,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_WIFI_POWER, riot.getWifiPower());
     return(true);
   } 
-
   else if(!strncmp(TEXT_CALIBRATION, line, strlen(TEXT_CALIBRATION))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -497,7 +524,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_CALIBRATION, riot.getCalibrationTimer());
     return(true);
   }
-
   else if(!strncmp(TEXT_DECLINATION, line, strlen(TEXT_DECLINATION))) {
     index = skipToValue(line);
     float angle = atof(&line[index]);
@@ -518,6 +544,63 @@ bool parseConfigCallback(char *line) {
     return(true);
   }
 
+  else if(!strncmp(TEXT_BNO_ORIENT, line, strlen(TEXT_BNO_ORIENT))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val,0 , 7);
+    bno055.SetPos(val);
+    bno055.Set_Mode(NDOF);  // 9DoF fusion
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_BNO_ORIENT, bno055.orientation);
+    return(true);
+  }
+
+  else if(!strncmp(TEXT_ACC_RANGE, line, strlen(TEXT_ACC_RANGE))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val, ACC_2G, ACC_16G);
+    lsm6d.setAccRange(val);
+    motion.begin();
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_ACC_RANGE, lsm6d.getAccRange());
+    return(true);
+  }
+  else if(!strncmp(TEXT_GYRO_RANGE, line, strlen(TEXT_GYRO_RANGE))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val, GYRO_250DPS, GYRO_2000DPS);
+    lsm6d.setGyroRange(val);
+    motion.begin();
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_GYRO_RANGE, lsm6d.getGyroRange());
+    return(true);
+  }
+  else if(!strncmp(TEXT_MAG_RANGE, line, strlen(TEXT_MAG_RANGE))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val, MAG_4GAUSS, MAG_16GAUSS);
+    lis3mdl.setRange(val);
+    motion.begin();
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_MAG_RANGE, lis3mdl.getRange());
+    return(true);
+  }  
+  else if(!strncmp(TEXT_GYRO_GATE, line, strlen(TEXT_GYRO_GATE))) {
+    index = skipToValue(line);
+    float gate = atof(&line[index]);
+    motion.setGyroGate(gate);
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_GYRO_GATE, motion.getGyroGate());
+    return(true);
+  }  
+  else if(!strncmp(TEXT_GYRO_HPF, line, strlen(TEXT_GYRO_HPF))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    lsm6d.setGyroHpf(val);
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_GYRO_HPF, lsm6d.getGyroHpf());
+    return(true);
+  }  
   else if(!strncmp(TEXT_BARO_MODE, line, strlen(TEXT_BARO_MODE))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -527,7 +610,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_BARO_MODE, bmp390.getSamplingMode());
     return(true);
   }
-
   else if(!strncmp(TEXT_BARO_REF, line, strlen(TEXT_BARO_REF))) {
     index = skipToValue(line);
     float alt = atof(&line[index]);
@@ -536,7 +618,6 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %f\n", TEXT_BARO_REF, bmp390.getRefAltitude());
     return(true);
   }
-
   else if(!strncmp(TEXT_CHARGE_MODE, line, strlen(TEXT_CHARGE_MODE))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
@@ -544,6 +625,24 @@ bool parseConfigCallback(char *line) {
     riot.setChargingMode(val);
     if(riot.isDebug())
       Serial.printf("%s %d\n", TEXT_CHARGE_MODE, riot.getChargingMode());
+    return(true);
+  }
+  else if(!strncmp(TEXT_CPU_SPEED, line, strlen(TEXT_CPU_SPEED))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val,80 , 240);
+    riot.setCpuSpeed(val);
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_CPU_SPEED, riot.getCpuSpeed());
+    return(true);
+  }
+  else if(!strncmp(TEXT_CPU_DOZE, line, strlen(TEXT_CPU_DOZE))) {
+    index = skipToValue(line);
+    val = atoi(&line[index]);
+    val = constrain(val,80 , 240);
+    riot.setCpuDoze(val);
+    if(riot.isDebug())
+      Serial.printf("%s %d\n", TEXT_CPU_DOZE, riot.getCpuDoze());
     return(true);
   }
   else if(!strncmp(TEXT_LED_COLOR, line, strlen(TEXT_LED_COLOR))) {
@@ -583,11 +682,10 @@ bool parseConfigCallback(char *line) {
     index = skipToValue(line);
     val = atoi(&line[index]);
     val = constrain(val,0 , MAX_SLOW_BOOT);
-    if( val == riot.getSlowBoot())
-      return(true); // avoids flash wear
-      
-    riot.setSlowBoot(val);
-    riot.writeSlowBoot();
+    if( val != riot.getSlowBoot()) { // avoids flash wear
+      riot.setSlowBoot(val);
+      riot.writeSlowBoot();
+    }
     if(riot.isDebug())
       Serial.printf("%s %d\n", TEXT_SLOW_BOOT, riot.getSlowBoot());
     return(true);
@@ -656,6 +754,49 @@ bool parseConfigCallback(char *line) {
       Serial.printf("%s %d\n", TEXT_MAG_OFFSETZ, motion.getMagBiasRaw(Z_AXIS));
     return(true);
   }
+  else if(!strncmp(TEXT_SOFT_IRON_MATRIX1, line, strlen(TEXT_SOFT_IRON_MATRIX1))) {
+    float vect[3];
+    index = skipToValue(line);
+    if(index) {
+      for(int i = 0; i < 3; i++) {
+        vect[i] = atof(&line[index]);
+        index = skipToNextValue(line, index);
+      }
+    }
+    motion.setSoftIronMatrix(vect, X_AXIS);
+    if(riot.isDebug())
+      Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX1, vect[0], vect[1], vect[2]);
+    return(true);
+  }
+  else if(!strncmp(TEXT_SOFT_IRON_MATRIX2, line, strlen(TEXT_SOFT_IRON_MATRIX2))) {
+    float vect[3];
+    index = skipToValue(line);
+    if(index) {
+      for(int i = 0; i < 3; i++) {
+        vect[i] = atof(&line[index]);
+        index = skipToNextValue(line, index);
+      }
+    }
+    motion.setSoftIronMatrix(vect, Y_AXIS);
+    if(riot.isDebug())
+      Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX2, vect[0], vect[1], vect[2]);
+    return(true);
+  }
+  else if(!strncmp(TEXT_SOFT_IRON_MATRIX3, line, strlen(TEXT_SOFT_IRON_MATRIX3))) {
+    float vect[3];
+    index = skipToValue(line);
+    if(index) {
+      for(int i = 0; i < 3; i++) {
+        vect[i] = atof(&line[index]);
+        index = skipToNextValue(line, index);
+      }
+    }
+    motion.setSoftIronMatrix(vect, Z_AXIS);
+    if(riot.isDebug())
+      Serial.printf("%s [ %f %f %f ]\n", TEXT_SOFT_IRON_MATRIX3, vect[0], vect[1], vect[2]);
+    return(true);
+  }
+  
   else if(!strncmp(TEXT_BETA, line, strlen(TEXT_BETA))) {
     index = skipToValue(line);
     motion.setBeta(atof(&line[index]));
@@ -673,12 +814,25 @@ bool parseConfigCallback(char *line) {
     format();
     return(true);
   }
+  else if(!strncmp(TEXT_AUTO_TEST, line, strlen(TEXT_AUTO_TEST))) {
+    autoTest();
+    return(true);
+  }
   else if(!strncmp(TEXT_CALIBRATE, line, strlen(TEXT_CALIBRATE))) {
     // re enable calibration timer
     riot.setCalibrationTimer(riot.getCalibrationTimer());
     motion.nextStep(true);  // overrides switch action
     return(true);
   }
+  else if(!strncmp(TEXT_AUTOCAL_MAG, line, strlen(TEXT_AUTOCAL_MAG))) {    
+    motion.runAutoCalMag();
+    return(true);
+  }
+  else if(!strncmp(TEXT_AUTOCAL_MOTION, line, strlen(TEXT_AUTOCAL_MOTION))) {    
+    motion.runAutoCalMotion();
+    return(true);
+  }
+ 
   else if(!strncmp(TEXT_VERSION, line, strlen(TEXT_VERSION))) {
     Serial.printf("%s\n", riot.getVersion());
     return(true);
@@ -689,7 +843,11 @@ bool parseConfigCallback(char *line) {
     return(true);
   }
   else if(!strncmp(TEXT_GO_COMMAND, line, strlen(TEXT_GO_COMMAND))) {
-    motion.nextStep(true);  // Proceed with calibraration - emulates the switch press
+    motion.nextStep(true);  // Proceed with calibration - emulates the switch press
+    return(true);
+  }
+  else if(!strncmp(TEXT_CANCEL_COMMAND, line, strlen(TEXT_CANCEL_COMMAND))) {
+    motion.cancel(true);  // Cancel calibration - emulates the switch press
     return(true);
   }
   else if(!strncmp(TEXT_LOG_MOTION, line, strlen(TEXT_LOG_MOTION))) {
@@ -773,6 +931,9 @@ bool storeConfig(void) {
 
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_PORT, riot.getDestPort());
   strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_RECEIVE_PORT, riot.getReceivePort());
+  strcat(fileBuffer, stringBuffer);
+
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_MASTER_ID, riot.getID());
   strcat(fileBuffer, stringBuffer);
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_SIGNED, TEXT_WIFI_POWER, riot.getWifiPower());
@@ -789,11 +950,30 @@ bool storeConfig(void) {
   strcat(fileBuffer, stringBuffer);
   sprintf(stringBuffer, "%s=%u,%u,%u\r\n", TEXT_LED_COLOR, riot.getPixelColor()[RED], riot.getPixelColor()[GREEN], riot.getPixelColor()[BLUE]);
   strcat(fileBuffer, stringBuffer);
+
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_CPU_SPEED, riot.getCpuSpeed());
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_CPU_DOZE, riot.getCpuDoze());
+  strcat(fileBuffer, stringBuffer);
   
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_FLOAT, TEXT_DECLINATION, motion.getDeclination());
   strcat(fileBuffer, stringBuffer);
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_ORIENTATION, motion.getOrientation());
-  strcat(fileBuffer, stringBuffer); 
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_BNO_ORIENT, bno055.orientation);
+  strcat(fileBuffer, stringBuffer);
+
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_ACC_RANGE, lsm6d.getAccRange());
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_GYRO_RANGE, lsm6d.getGyroRange());
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_MAG_RANGE, lis3mdl.getRange());
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_FLOAT, TEXT_GYRO_GATE, motion.getGyroGate());
+  strcat(fileBuffer, stringBuffer);
+  sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_GYRO_HPF, lsm6d.getGyroHpf());
+  strcat(fileBuffer, stringBuffer);
+    
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM, TEXT_BARO_MODE, bmp390.getSamplingMode());
   strcat(fileBuffer, stringBuffer);
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_FLOAT, TEXT_BARO_REF, bmp390.getRefAltitude());
@@ -825,6 +1005,23 @@ bool storeConfig(void) {
   strcat(fileBuffer, stringBuffer);
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_SIGNED, TEXT_MAG_OFFSETZ, motion.getMagBiasRaw(Z_AXIS));
   strcat(fileBuffer, stringBuffer);
+
+  f_write(&file, fileBuffer, strlen(fileBuffer), &write);
+  totalWrite += write;
+  f_sync(&file);
+  memset(fileBuffer, '\0', CONFIG_MAX_LINE_LEN);
+
+  // Soft Iron Matrix storage
+  float *pf;
+  pf = motion.getSoftIronMatrixRow(X_AXIS);
+  sprintf(stringBuffer, "%s=%f,%f,%f%s", TEXT_SOFT_IRON_MATRIX1, pf[0],pf[1],pf[2], TEXT_FILE_EOL);
+  strcat(fileBuffer, stringBuffer);
+  pf = motion.getSoftIronMatrixRow(Y_AXIS);
+  sprintf(stringBuffer, "%s=%f,%f,%f%s", TEXT_SOFT_IRON_MATRIX2, pf[0],pf[1],pf[2], TEXT_FILE_EOL);
+  strcat(fileBuffer, stringBuffer);
+  pf = motion.getSoftIronMatrixRow(Z_AXIS);
+  sprintf(stringBuffer, "%s=%f,%f,%f%s", TEXT_SOFT_IRON_MATRIX3, pf[0],pf[1],pf[2], TEXT_FILE_EOL);
+  strcat(fileBuffer, stringBuffer);
   
   sprintf(stringBuffer, TEXT_FILE_SINGLE_PARAM_FLOAT, TEXT_BETA, motion.getBeta());
   strcat(fileBuffer, stringBuffer);
@@ -844,7 +1041,12 @@ bool storeConfig(void) {
 
 // Assumes the file is already opened for writing
 void restoreDefaults(bool save) {
+  if(riot.isDebug())
+    Serial.printf("%s Restoring default values\n", TEXT_FILE_LOG);
   motion.init();
+  lsm6d.setAccRange(ACC_8G);
+  lsm6d.setGyroRange(GYRO_2000DPS);
+  lis3mdl.setRange(MAG_4GAUSS);  
   riot.init();
   if(save)
     storeConfig();

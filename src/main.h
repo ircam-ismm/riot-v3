@@ -15,6 +15,8 @@
 #include <ESPmDNS.h> // Access to mDNS related functionalities
 #include <WebServer.h>
 #include <Update.h>
+// light OSC parser / Micro OSC
+#include <MicroOscUdp.h>
 #include <U8g2lib.h>
 #include "./src/ota.h "
 #include "./src/functions.h"
@@ -40,6 +42,8 @@ extern WiFiUDP udpPacket;
 extern WiFiUDP configPacket;
 extern WebServer httpServer;
 
+extern MicroOscUdp<1024> oscUdp;
+
 extern WiFiClient client;
 extern CRGBW8 blinkColor;
 // Mass storage driver using TinyUSB
@@ -53,8 +57,8 @@ extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
 
 #define VERSION "IRCAM R-IoT"
 #define FW_VERSION_MAJOR  "3"
-#define FW_VERSION_MINOR  "18"
-#define FW_VERSION_PATCH  "3"
+#define FW_VERSION_MINOR  "19"
+#define FW_VERSION_PATCH  "0"
 
 #define FW_UPDATE_FILE    "/update.bin"
 
@@ -106,9 +110,10 @@ extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
 // DEFAULTS
 #define DEFAULT_MSD_VOLUME_NAME   "RIOT3-MSD"
 #define DEFAULT_UDP_PORT          8000
-#define DEFAULT_UDP_SERVICE_PORT  7777
+#define DEFAULT_UDP_SERVICE_PORT  9000
 #define DEFAULT_SSID              "riot-lab"
 #define DEFAULT_AP_PASSWORD       "riot1234"
+#define DEFAULT_MDNS              "riot"
 #define DEFAULT_SAMPLE_RATE       5
 #define DEFAULT_ID                0
 #define CONFIG_FILE               "config.txt"
@@ -120,6 +125,15 @@ extern U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2;
 // WIFI & WEB preferences
 #define MAX_CLIENTS    5
 
+/////////////////////////////////////////////////////////////
+// Fonts used with the display
+#define VERY_LARGE_FONT u8g2_font_crox3cb_tr    // Very large and complete font for displaying font/path name when BMP isn't there. Semi bold
+#define LARGE_FONT      u8g2_font_7x14_mf       // Large font for games or single line information, uses about 1/4 of the screen. Not bold
+#define TWO_LINE_FONT   u8g2_font_6x10_tf       // Small enough for 2 x lines of information, like during boot or at the end of SW played on the OLED
+#define MINI_FONT       u8g2_font_u8glib_4_hr   // miniature font for SW displayed on the OLED and for the font # displayed during the vocal menu
+#define MEDIUM_FONT     u8g2_font_t0_11_me
+#define MICRO_2x2_FONT  u8g2_font_2x2
+
 typedef union uWord {
   int16_t Value;
   unsigned char Val[sizeof(int16_t)];
@@ -129,6 +143,12 @@ typedef union udWord {
   uint32_t Value;
   unsigned char Val[sizeof(uint32_t)];
 } dWord;
+
+// Structure to store 3D vector data
+typedef struct {
+    double x, y, z;
+} Vector3;
+
 
 #endif
 

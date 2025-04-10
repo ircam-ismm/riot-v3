@@ -4,11 +4,6 @@
 #include <string.h>
 #include "osc.h"
 
-// TODO : 
-// - constructor to build the message from an incoming OSC packet
-// - methods to parse incoming packets and associate handles to be called upon reception with parameters
-//     example: /foo 25 => calls foo(25)
-
 // This class should rely on main.h see how to make it totally independant. Check if libs above are needed 
 // for compilation
 
@@ -173,20 +168,6 @@ void simpleOSC::addShort(int16_t val) {
   net_value = htonl(net_value);
   memcpy(_pBuf, &net_value, sizeof(net_value));
   _pBuf += sizeof(int32_t);   // even with as short, space used remains 32-bit wide
-  
-/*
-  // Sign padding
-  if(val < 0) {
-      _pBuf[0] = 0xFF;
-      _pBuf[1] = 0xFF;
-  }
-  else {
-      _pBuf[0] = 0;
-      _pBuf[1] = 0;
-  }
-  _pBuf[2] = (unsigned char)(val >> 8);
-  _pBuf[3] = (unsigned char)(val & 0x00FF);
-  _pBuf += sizeof(int32_t);   // even with as short, space used remains 32-bit wide*/
 }
 
 // Adds a 16 bit value from the Word (union) struct / data type
@@ -198,18 +179,6 @@ void simpleOSC::addWord(Word theWord) {
   net_value = htonl(net_value);
   memcpy(_pBuf, &net_value, sizeof(net_value));
   _pBuf += sizeof(int32_t);   // even with as short, space used remains 32-bit wide
-
-  /*
-  // Sign padding / extension
-  if(theWord.Value < 0) {
-      _pBuf[0] = _pBuf[1] =0xFF;
-  }
-  else {
-      _pBuf[0] = _pBuf[1] = 0;
-  }
-  _pBuf[2] = theWord.Val[1];
-  _pBuf[3] = theWord.Val[0];
-  _pBuf += sizeof(int32_t);   // even with as short, space used remains 32-bit wide*/
 }
 
 void simpleOSC::addInt(int32_t val) {
@@ -238,26 +207,6 @@ void simpleOSC::rewind() {
 }
 
 
-// Todo : use callbacks
-void receivedOscMessage( MicroOscMessage& message) {
-  if ( message.fullMatch("/output", "i") ) {
-    int32_t firstArgument = message.nextAsInt();
-    firstArgument = constrain(firstArgument, false, true);
-
-    //Serial.print("DEBUG /output/i ");
-    digitalWrite(REMOTE_OUTPUT, firstArgument);
-  }
-  else if ( message.fullMatch("/pwm", "i") ) {
-    int32_t firstArgument = message.nextAsInt();
-    firstArgument = constrain(firstArgument, 0, 255);
-
-    //Serial.print("DEBUG /output/i ");
-    analogWrite(REMOTE_OUTPUT, firstArgument);
-  }
-  else {
-    Serial.printf("[RX] Wrong OSC syntax\n");
-  }
-}
 
 /////////////////////////////////////////////////////////////////
 // Bundle
@@ -358,5 +307,5 @@ bool simpleBundle::addMessage(uint8_t *buff, uint32_t buffSize) {
 
 simpleBundle bundleOSC;
 simpleOSC rawSensors;
-simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055OSC;
+simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
 simpleOSC printOscMessage;

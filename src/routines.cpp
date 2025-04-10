@@ -78,26 +78,126 @@ uint8_t readChargeStatus(void) {
 
 void setModemSleep() {
     WiFi.setSleep(true);  // Wifi will be re-enabled next time a packet is sent
-    if (!setCpuFrequencyMhz(80)){
+    if (!setCpuFrequencyMhz(riot.getCpuDoze())){
         Serial.println("Not valid frequency!");
     }
 }
  
 void wakeModemSleep() {
-    setCpuFrequencyMhz(240);
-    //setCpuFrequencyMhz(160);
-    //setCpuFrequencyMhz(80);
+    WiFi.setSleep(false);
+    if(!setCpuFrequencyMhz(riot.getCpuSpeed())) {
+        Serial.println("Not valid frequency!");
+    }
 }
 
+void setWiFiPowerSavingMode(){
+    esp_wifi_set_ps(WIFI_PS_MAX_MODEM);     // reduced listening interval
+    // esp_wifi_set_ps(WIFI_PS_NONE);       // no power saving
+    // esp_wifi_set_ps(WIFI_PS_MIN_MODEM);  // default - delayed rx
+}
+
+void disableWiFi(){
+    //adc_power_off(); //to fix
+    WiFi.disconnect(true);  // Disconnect from the network
+    WiFi.mode(WIFI_OFF);    // Switch WiFi off
+}
 
 void format() {
   FFat.format();
-  if (!FFat.begin()) {
-    Serial.println("FFat Mount Failed permanently");
-    die();
-  }
-  restoreDefaults(true);
+    if (!FFat.begin()) {
+      Serial.println("FFat Mount Failed permanently");
+      die();
+    }
+    restoreDefaults(true);
 }
+
+
+// Performs an auto-test of the board, after booting normally and intializing
+#define ACC_TEST_LINE       10 
+#define X_SCOPE_LINE        30
+#define Y_SCOPE_LINE        46
+#define Z_SCOPE_LINE        62
+#define SCOPE_SCALE         5
+#define SCOPE_OFFSET        8
+#define ANALOG_SCALE_ACC    5.f
+#define BETWEEN_LINES       16
+
+bool autoTest() {
+  uint8_t result = 0;
+  uint8_t isMovingX, isMovingY, isMovingZ;
+  char str[MAX_STRING_LEN];
+  float testArray[3], testArray_1[3];
+  int maxSamples = u8g2.getWidth();
+  bool accOK, gyroOK, magOK, baroOK, analogOK, gpioOK;
+
+  
+  if(riot.isDebug())
+    Serial.printf("%s Running Board auto-test\n", TEXT_DEBUG_LOG);
+  
+  u8g2.clearDisplay();
+  u8g2.clearBuffer();
+  u8g2.setFont(MEDIUM_FONT);
+  u8g2.drawStr(0, ACC_TEST_LINE, "Testing ACC");
+  u8g2.drawStr(0, X_SCOPE_LINE, "X");
+  u8g2.drawStr(0, Y_SCOPE_LINE, "Y");
+  u8g2.drawStr(0, Z_SCOPE_LINE, "Z");
+
+  isMovingX = isMovingY = isMovingZ = 0;
+  accOK = gyroOK = magOK = baroOK = analogOK = gpioOK = false;
+  
+  for(int i = 0 ; i < (maxSamples-SCOPE_OFFSET) ; i++) {
+    motion.grab();
+    motion.compute();
+    testArray[0] = clipData(motion.accX - testArray_1[0], ANALOG_SCALE_ACC, SCOPE_SCALE);
+    if(riot.isDebug())
+      Serial.printf("deltaX = %f / scaledX = %f\n", motion.accX - testArray_1[0], testArray[0]);
+    testArray_1[0] = motion.accX;
+    if(testArray[0] != 0.f)
+      isMovingX++;
+    u8g2.drawPixel(i+SCOPE_OFFSET, X_SCOPE_LINE-SCOPE_SCALE+testArray[0]);
+    
+    testArray[1] = clipData(motion.accY - testArray_1[1], ANALOG_SCALE_ACC, SCOPE_SCALE);
+    if(riot.isDebug())
+      Serial.printf("deltaY = %f / scaledY = %f\n", motion.accY - testArray_1[1], testArray[1]);
+    testArray_1[1] = motion.accY;
+    if(testArray[1] != 0.f)
+      isMovingY++;
+    u8g2.drawPixel(i+SCOPE_OFFSET, Y_SCOPE_LINE-SCOPE_SCALE+testArray[1]);
+      
+    testArray[2] = clipData(motion.accZ - testArray_1[2], ANALOG_SCALE_ACC, SCOPE_SCALE);
+    if(riot.isDebug())
+      Serial.printf("deltaZ = %f / scaledZ = %f\n", motion.accZ - testArray_1[2], testArray[2]);
+    testArray_1[2] = motion.accZ;
+    if(testArray[2] != 0.f)
+      isMovingZ++;
+    u8g2.drawPixel(i+SCOPE_OFFSET, Z_SCOPE_LINE-SCOPE_SCALE+testArray[2]);
+
+    u8g2.sendBuffer();
+    delay(10);  
+  }
+
+  if((isMovingX+isMovingY+isMovingZ) > maxSamples) {
+    accOK = true;
+    Serial.printf("Accelerometer OK\n");
+    u8g2.drawStr(0, Z_SCOPE_LINE, "Accelerometer OK");
+  }
+  delay(500);
+  u8g2.clearDisplay();
+  u8g2.clearBuffer();
+  
+
+  return(true);
+}
+
+float clipData(float val, float analogScale, int scopeScale) {
+  val = fmap(val, -1.f * ANALOG_SCALE_ACC, ANALOG_SCALE_ACC, SCOPE_SCALE, -1.f * SCOPE_SCALE);
+  val = constrain(val, -1 * SCOPE_SCALE, SCOPE_SCALE);
+  return(val);  
+}
+
+/*bool isAlive() {
+  
+}*/
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // File & Dir handling + helpers

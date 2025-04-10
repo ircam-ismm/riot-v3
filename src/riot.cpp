@@ -31,6 +31,7 @@ void riotCore::init() {
   setAPIP(defaultAccessPointIP);
   setID(DEFAULT_ID);
   setDestPort(DEFAULT_UDP_PORT);
+  setReceivePort(DEFAULT_UDP_SERVICE_PORT);
   operatingMode = STATION_MODE;
   useDHCP = true;
   configurationMode = false;
@@ -134,8 +135,9 @@ void riotCore::begin() {
     }
 
     char str[MAX_STRING_LEN];
-    //sprintf(str, "/%u/raw", moduleID);
-    //rawSensors.begin(str, 'f', OSC_DATA_SLOTS + (hasBNO055() ? OSC_SLOTS_BNO055 : 0));
+
+    // OSC address to talk back to the module (commands, ping etc)
+    sprintf(oscAddressString, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_MESSAGE);
 
     // Prepare the new structure of split OSC message
     sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ACCELEROMETER);
@@ -171,12 +173,15 @@ void riotCore::begin() {
     sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ANALOG);
     analogInputsOSC.begin(str, "fffi"); // including battery voltage
 
-    sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_BNO055);
-    bno055OSC.begin(str, "fffi");
+    sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_BNO055, OSC_STRING_EULER);
+    bno055EulerOSC.begin(str, "fffi");
+
+    sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_BNO055, OSC_STRING_QUATERNION);
+    bno055QuatOSC.begin(str, "ffffi");
 
     uint32_t bundleSize = accelerometerOSC.getSize() + gyroscopeOSC.getSize() + magnetometerOSC.getSize() + barometerOSC.getSize();
     bundleSize += temperatureOSC.getSize() + gravityOSC.getSize() + headingOSC.getSize() + quaternionsOSC.getSize() + eulerOSC.getSize();
-    bundleSize += controlOSC.getSize() + analogInputsOSC.getSize() + bno055OSC.getSize();
+    bundleSize += controlOSC.getSize() + analogInputsOSC.getSize() + bno055EulerOSC.getSize() + bno055QuatOSC.getSize();
     bundleOSC.begin(bundleSize);
   }
 
@@ -296,8 +301,8 @@ void riotCore::update() {
       printWifiData();
       udpPacket.begin(localIP, destPort);
       // Open the service port to talk to the module (config, calibration)
-      configPacket.begin(DEFAULT_UDP_SERVICE_PORT);    // remote control packets are on the same port as dest port
-      oscUdp.setDestination(destIP, DEFAULT_UDP_SERVICE_PORT);
+      configPacket.begin(receivePort);    // remote control packets are on the same port as dest port
+      oscUdp.setDestination(destIP, destPort); // that's more for outgoing packets but configured nonetheless
 
       stateMachine = RIOT_CONNECTED;
       //setLedColor(Blue);
@@ -410,13 +415,14 @@ void riotCore::calibrate() {
       break;
       
     case RIOT_CALIBRATION_MAG:
-      motion.magOffsetCalibration();
+      motion.calibrateMag();
       if(onBoardSwitch.pressed() || motion.isNextStep()) {
-        motion.magOffsetCalibration(true);  // stores offsets
+        motion.calibrateMag(true);  // stores offsets
         setLedColor(Green);
         while(onBoardSwitch.pressed())
-          delay(20);   
+          delay(20);
         storeConfig();
+        motion.begin();   // Recomputes offsets
         // End of Calibration
         setOperationState(RIOT_STREAMING);
       }
@@ -715,9 +721,9 @@ void riotCore::process() {
   accelerometerOSC.addInt(now);
   
   gyroscopeOSC.rewind();
-  gyroscopeOSC.addFloat(motion.g_z); // Range {-2000 ; +2000} °/s
-  gyroscopeOSC.addFloat(motion.g_x);
+  gyroscopeOSC.addFloat(motion.g_x); // Range {-2000 ; +2000} °/s
   gyroscopeOSC.addFloat(motion.g_y);
+  gyroscopeOSC.addFloat(motion.g_z);
   gyroscopeOSC.addInt(now);
 
   magnetometerOSC.rewind();
@@ -751,11 +757,18 @@ void riotCore::process() {
   eulerOSC.addInt(now);
 
   if(hasBNO055()) {
-    bno055OSC.rewind();
-    bno055OSC.addFloat((float)motion.bno055Data[0]); // Yaw
-    bno055OSC.addFloat((float)motion.bno055Data[2]); // Pitch
-    bno055OSC.addFloat((float)motion.bno055Data[1]); // Roll
-    bno055OSC.addInt(now);
+    bno055EulerOSC.rewind();
+    bno055EulerOSC.addFloat((float)motion.bno055Data[0]); // Yaw
+    bno055EulerOSC.addFloat((float)motion.bno055Data[2]); // Pitch
+    bno055EulerOSC.addFloat((float)motion.bno055Data[1]); // Roll
+    bno055EulerOSC.addInt(now);
+
+    bno055QuatOSC.rewind();
+    bno055QuatOSC.addFloat((float)motion.bno055Quat[1]); // x
+    bno055QuatOSC.addFloat((float)motion.bno055Quat[2]); // y
+    bno055QuatOSC.addFloat((float)motion.bno055Quat[3]); // z
+    bno055QuatOSC.addFloat((float)motion.bno055Quat[0]); // w
+    bno055QuatOSC.addInt(now);
   }
 
   gravityOSC.rewind();
@@ -783,11 +796,12 @@ void riotCore::process() {
   bundleOSC.addMessage(gravityOSC.getBuffer(), gravityOSC.getSize());
   bundleOSC.addMessage(headingOSC.getBuffer(), headingOSC.getSize());
   if(hasBNO055()) {
-    bundleOSC.addMessage(bno055OSC.getBuffer(), bno055OSC.getSize());
+    bundleOSC.addMessage(bno055EulerOSC.getBuffer(), bno055EulerOSC.getSize());
+    bundleOSC.addMessage(bno055QuatOSC.getBuffer(), bno055QuatOSC.getSize());
   }
   bundleOSC.addMessage(analogInputsOSC.getBuffer(), analogInputsOSC.getSize());
   bundleOSC.addMessage(controlOSC.getBuffer(), controlOSC.getSize());
-
+  
   udpPacket.beginPacket(destIP, destPort);
   udpPacket.write(bundleOSC.getBuffer(), bundleOSC.getSize());
   udpPacket.endPacket();
@@ -943,6 +957,7 @@ void WiFiEvent(WiFiEvent_t event) {
         startWebServer();
         startBonjour();
       }
+      motion.resetBeta();
       break;
 
     case ARDUINO_EVENT_WIFI_STA_DISCONNECTED:

@@ -1,0 +1,34 @@
+mtllib cube.mtl
+o ColoredCube
+
+# Front face
+usemtl Red
+v -1.0 -1.0  0.25
+v  1.0 -0.2  0.25
+v  1.0  0.2  0.25
+v -1.0  1.0  0.25
+f 1 2 3 4
+
+# Back face
+usemtl Green
+v -1.0 -1.0 -0.25
+v  1.0 -0.2 -0.25
+v  1.0  0.2 -0.25
+v -1.0  1.0 -0.25
+f 5 6 7 8
+
+# Left face
+usemtl Blue
+f 1 4 8 5
+
+# Right face
+usemtl Yellow
+f 2 6 7 3
+
+# Top face
+usemtl Cyan
+f 4 3 7 8
+
+# Bottom face
+usemtl Magenta
+f 1 5 6 2
