@@ -1,0 +1,40 @@
+// R-IoT v3 usage - Serial Commands & configuration parameters
+// Commands with parameters should be followed by the '=' sign then parameter value(s)
+
+ping		checks module serial port - should answer "echo"
+defaults	restore the defaults configuration file config.txt
+savecfg		saves current parameters in config.txt
+cfgrequest	recalls / displays current parameters
+reset		resets / reboots the board
+calibrate	triggers the fusion / euler angle calibration process
+rssi		displays the WIFI signal strength in dB
+version		displays the firmware version
+wifi		displays wifi & IP connection informations of the R-IoT
+battery		displays the battery voltage
+usb		displays the USB voltage
+
+debug 	 	= <0/1> - debug mode en./dis.
+mode		= <0/1> - 0 = wifi client / 1 = Access point (computer connects to the R-IoT
+dhcp		= <0/1> - set to 1 to use DHCP or 0 for a fixed IP address (ownip below)
+ssid		= <wifi netword SSID / name>
+pass		= <wifi network passphrase> [8 char min or nothing for unprotected SSID]
+ownip		= 192.168.1.10 - your fixed IP address if not using DHCP
+destip		= 192.168.1.100 - the computer's IP receiving the R-IoT's OSC data
+gateway		= 192.168.1.1 - the router / gateway IP when sending thru other LANs or Internet
+dns		= 192.168.1.1 - usually your router address, automatically provided when using DHCP
+mask		= 255.255.255.0 - network mask (standard value for a classic subnet masking)
+port		= <OSC UDP port> Use free ports, usually above 8000
+masterid	= {0;xx} ID of the module inserted in the OSC string to route modules sending
+		  on the same UDP port
+samplerate	= {3;20000} Sample period in ms
+remote		= <0/1> - set to 1 to enable the reception and parsing of remote OSC messages
+power		= {-4 ; 78} <=> {-1;19.5} dBm - WiFi transmission power
+forceconfig	= <0/1> - enables the config / Update webserver even while in normal/streaming mode
+calibration	= {0;20000} time in ms during which calibration is available after WiFi connection
+charger		= {0;3} charge vs. streaming mode. 0=always stream / 1=no stream / if USB plugged
+		  2=stream with USB plugged if power switch is ON 
+declination	= magnetic declination of your location (floating point number)
+		  https://www.magnetic-declination.com/
+orientation	= specifies axis and orientation of the module - see readme.txt & Manual
+baroref		= reference altitude for the read baro pressure
+
