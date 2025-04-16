@@ -167,7 +167,7 @@ void riotCore::begin() {
     sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ORIENTATION, OSC_STRING_QUATERNION);
     quaternionsOSC.begin(str, "ffffi");
 
-    sprintf(str, "/%s/%s/%d/%s/s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_CONTROL, OSC_STRING_KEY);
+    sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_CONTROL, OSC_STRING_KEY);
     controlOSC.begin(str, "ffi");
 
     sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ANALOG);
@@ -721,9 +721,9 @@ void riotCore::process() {
   accelerometerOSC.addInt(now);
   
   gyroscopeOSC.rewind();
-  gyroscopeOSC.addFloat(motion.g_x); // Range {-2000 ; +2000} °/s
-  gyroscopeOSC.addFloat(motion.g_y);
-  gyroscopeOSC.addFloat(motion.g_z);
+  gyroscopeOSC.addFloat(motion.g_x * DEG_TO_RAD); // rad/s (2000° / PI)/s)
+  gyroscopeOSC.addFloat(motion.g_y * DEG_TO_RAD);
+  gyroscopeOSC.addFloat(motion.g_z * DEG_TO_RAD);
   gyroscopeOSC.addInt(now);
 
   magnetometerOSC.rewind();
@@ -955,8 +955,9 @@ void WiFiEvent(WiFiEvent_t event) {
       riot.setState(RIOT_GOT_IP);
       if(riot.isForcedConfig()) {
         startWebServer();
-        startBonjour();
       }
+      startBonjour();
+      
       motion.resetBeta();
       break;
 
@@ -969,8 +970,8 @@ void WiFiEvent(WiFiEvent_t event) {
       Serial.printf("AP started successfully\n");
       if(riot.isConfig() || riot.isForcedConfig()) {
         startWebServer();
-        startBonjour();
       }
+      startBonjour();
       break;
 
     case ARDUINO_EVENT_WIFI_AP_STOP:

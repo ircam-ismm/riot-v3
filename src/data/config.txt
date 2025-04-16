@@ -1,4 +1,4 @@
-//R-IoT Configuration - fw: IRCAM R-IoT-3.19.0
+//R-IoT Configuration - fw: IRCAM R-IoT-3.20.0
 debug=0
 mode=0
 ssid=riot-lab

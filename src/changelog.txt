@@ -21,6 +21,10 @@
   are 80, 160 and 240 (MHz)
 - Soft Iron matrix calibration and computation along with the Hard Iron offsets computed with the min/max method
 - Max abstraction now uses quaternion to render the 3D model (selectable)
+- Fixed parameter 'gyrogate' parsing function
+- Fixed mDNS (bonjour) not being started when not in config mode
+- Gyros now exported in OSC in rad.s-1
+- Heading now exported in OSC as {0;360}°
 
 
 

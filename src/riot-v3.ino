@@ -54,6 +54,17 @@
   - add a HW timer for low jitter measurements and accurate integration delta T on gyros ?
   - Pixel could switch between blue and black at a constant period (based on sampleRate). Maybe a task on the other MCU core ?
 
+  review version log after update : calling version before root leads to incorrect versio logged
+
+  check mDNS when forceconfig is off, declare UDP service on service port
+  check if mDNS is consumming bandwidth regarding wifi regularity
+
+  Selection map (bitfield) to define what is sent in OSC to reduce payload and trafic
+
+  check if host can be resolved for dest IP
+
+  compass (heading) : 0-360 / keep yaw -180 ; 180 / convert gyros in rad/s
+
   have a concert mode that is less energy hungry and disables wifi in idle / hibernate, super low power
   param to define dozing of the CPU 80/160/240MHz (changes current usage of 10mA and board temp +5° @240 MHz)
   but computations go down to 1.32ms instead of 2ms !!!

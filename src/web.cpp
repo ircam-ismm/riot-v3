@@ -46,8 +46,9 @@ bool startBonjour(void) {
   if(mdnsOK) {
   // Add service to MDNS-SD
     MDNS.addService("_http", "_tcp", 80);
-    MDNS.addService("_riot", "_udp", riot.getDestPort());
-    Serial.println("MDNS responder start on riot.local");
+    //MDNS.addService("_riotSend", "_udp", riot.getDestPort());
+    //MDNS.addService("_riotReceive", "_udp", riot.getReceivePort());
+    Serial.printf("MDNS responder start on %s.local\n", riot.getBonjour());
   }
   return(mdnsOK);
 }

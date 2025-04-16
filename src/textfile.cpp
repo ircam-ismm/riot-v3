@@ -590,7 +590,7 @@ bool parseConfigCallback(char *line) {
     float gate = atof(&line[index]);
     motion.setGyroGate(gate);
     if(riot.isDebug())
-      Serial.printf("%s %d\n", TEXT_GYRO_GATE, motion.getGyroGate());
+      Serial.printf("%s %f\n", TEXT_GYRO_GATE, motion.getGyroGate());
     return(true);
   }  
   else if(!strncmp(TEXT_GYRO_HPF, line, strlen(TEXT_GYRO_HPF))) {
