@@ -35,81 +35,60 @@
     SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 /*
- *   UPDATE 10/07/2024 : works great with toolchain 3.0.2 - code size 52% + RAM 20%
-     UPDATE 15/01/2025 : works great with toolchain 3.1.1 - code size 54% (with OTA) + RAM 24%
-
      ** Dev History
     v3.0 : rough port of the CC3200 code to the ESP32 - Compiles initially with ESP32 toolchain 2.0.14
-     PSRAM : disabled
-     Code size :  42% (8MB) / RAM used : 21% (67k)
+     PSRAM : disabled - Code size :  42% (8MB) / RAM used : 21% (67k)
     v3.1 : migrating all C code to C++ with split classes and global objects (including OSC)
     v3.12 : moving forward with the new board, news sensors, OTA and more structure code
     
     Compilation target : ESP32-S3 dev module - USB Mode : USB-OTG / CDC on boot : enabled / DFU on boot : disabled / Upload Mode : USB-OTG(TinyUSB)
     CPU frequency : 160 MHz (or 80 MHz) / Flash Mode : QIO 80 MHz / Flash Size : 8 MB / Partition : 8MB with FAT (2MB app / 3.7MB FFAT)
+
+    UPDATE 10/06/2025 : current toolchain 3.1.1 - code size 57% (with OTA) + RAM 24%
   
   Todo : 
+  - check optimization variants -O2 vs. -Os in the compiler
   
   - use vector arithmetics ?
   - add a HW timer for low jitter measurements and accurate integration delta T on gyros ?
   - Pixel could switch between blue and black at a constant period (based on sampleRate). Maybe a task on the other MCU core ?
 
-  review version log after update : calling version before root leads to incorrect versio logged
-
-  check mDNS when forceconfig is off, declare UDP service on service port
-  check if mDNS is consumming bandwidth regarding wifi regularity
+  test and compare whip antenna regarding transmission jitter and heat (see ESP32-C3 article)
+  
+  check current consumption with sensors in sleep mode, and various power saving modes of the ESP32
 
   Selection map (bitfield) to define what is sent in OSC to reduce payload and trafic
 
-  check if host can be resolved for dest IP
+  check if we accept domain names / URL instead of the IP (in parseConfig()) => use gethostbyname - assumes connection works to query DNS
 
-  compass (heading) : 0-360 / keep yaw -180 ; 180 / convert gyros in rad/s
+  exporting charging vs. non charging via OSC : problematic while streaming as reading the charger state takes some time. Not viable for now
 
-  have a concert mode that is less energy hungry and disables wifi in idle / hibernate, super low power
-  param to define dozing of the CPU 80/160/240MHz (changes current usage of 10mA and board temp +5° @240 MHz)
-  but computations go down to 1.32ms instead of 2ms !!!
-  
+  add param for sending data with calibration offsets or without (motion class)
+  perform basic live calibration of hard iron for mag. Maybe BNO055 does that live and detects pertubations of the mag field => new calib
+
+  add a parameter to decide if the soft-iron correction matrix is used or not
+
   add a help/usage/? command listing all the existing commands : could actually play a help page from the USB drive
   in the style of a man page. Could be a webpage. Could be a text page (on USB MSB) displayed thru serial, line by line
 
-  Build a test jig with pogo. Test automated upload method using GPIO Zero and the regular UART to avoid plugging USB and having
-  a single COM port to deal with. Test the DTR method and the 2 transistors like a regular ESP32 to see if it works. Make a test bed program
-
-  code an autotest for the board : test sensors, fat, I/O, ADC, pixel (rainbow)
-
-  add a gyro noisegate + test gyro HPF : decides whether to update madgwick or not if below threshold (gyro norm)
-  => Update madgwick but don't update the resulting angles if < gyro gate
-
-  have a dynamic beta when gyro spin, with decay like during boot, using the linear interpolator (convergence over XX duration, like 1s)
-
-  See how it goes with live update of the magnetometers offsets to avoid relying on calibration. Export a confidence / accurary score with the Euler
-  to define if the bias are changing drastically or not. The default hard iron are still being calibrated along with the soft iron, stored, and 
-  recalled dynamically at boot time and are used as start point, then their drift is analyzed in real time.
-  
+  OSC message to reset altitude live (altitude offset)
+ 
   param : useMagneto. Automatically switches between madgwick and mahony filter.
 
   integrate an autofw update by connecting to internet to the github repo then lauch elegantOTA
 
-  - Use a decreasing Beta Gain at the start to have a quick convergence then use the desired Beta convergence rate
-  - param to enable autocalibration of the gyro during stillness for long enough
   - calibration of gyros with temperature (biblio)
-  - bring back elipsoid fitting for the spherical calibration of the magnetometers
 
   auto-sleep mechanism to detect idle time after a while and go to sleep mode (reduced power) with auto wake up based on moves
 
   have ALL config parameters parsed as OSC string routed from /id/msg => parsed by the serial command parser
-  have calibration respond to OSC commands.
 
   Implement a unitary test with madgwick's updated filter & classes, port to arduino to make it usable with ESP32 or else
 
-  check if we accept domain names / URL instead of the IP (in parseConfig())
-
   explore Websockets
- 
-  add param for sending data with calibration offsets or without (motion class)
-  add proper soft+hard iron calibration and compensation
-  perform basic live calibration of hard iron for mag. Maybe BNO055 does that live and detects pertubations of the mag field => new calib
 
+  explore a MIDI-BLE demo for a Hyvibe compatible pedal or a handheld controller for the guitar looper (tap on a zone to detect loop start stop)
+ 
   Add oversampling of the orientation filter (see limits and how long it takes to compute madgwick) for better convergence and stability
   then define an general ODR for data (OSC)
 
@@ -117,7 +96,7 @@
 
   create an HTML page that displays the graphs of the sensors in HTML5 
 
-  local NTP server connection + OSC time tags ?
+  local NTP server connection + OSC time tags ? => Use ISMM simplified NTP over OSC messages
   check if AP can be started without passphrase just SSID + open network ? 
 
   test Touch capacitive inputs
@@ -175,15 +154,18 @@ void receivedOscMessage( MicroOscMessage& message);
 // Serial port message / buffers / temporary strings
 char serialBuffer[MAX_SERIAL_LEN];
 unsigned char serialIndex = 0;
+char serialBuffer1[MAX_SERIAL_LEN];   // Secondary TTL UART (Serial1)
+int serialIndex1 = 0;
 
 TimerHandle_t xTimerSwitches;
 void timerCallback(TimerHandle_t pxTimer);  // To poll switches & debounce
 
 
 void setup() {
-// Tests & Debug Only
-  //Serial0.begin(115200);
-  //Serial0.setDebugOutput(false);
+// For autotest & debug (HW UART)
+  Serial0.begin(115200);
+  Serial0.setDebugOutput(false);
+  // USB CDC serial
   Serial.setTxTimeoutMs(0);
   Serial.setDebugOutput(false);   // Ensures that Serial.printf doesn't locks when CDC port is closed
   Serial.begin(115200);
@@ -258,7 +240,7 @@ void setup() {
 
   /////////////////////////////////////////////////////////////////////////////////////////
   // Some self-diag @boot time
-  riot.version();  // populates the version string + displays it
+  riot.version();  // populates the version string (+MAC) + displays it - logs to file if version.txt not present
   Serial.printf("Battery = %f Volts\n", readBatteryVoltage());
   Serial.printf("USB = %f Volts\n", readUsbVoltage());
   Serial.printf("Battery Charge : %s\n", readChargeStatus() ? "Charging" : "Finished");
@@ -298,7 +280,7 @@ void setup() {
   riot.begin();
   // Initiates the wifi connection, state machine will be processed in the main loop
   riot.start();
-
+  
   if(riot.isCalibrate())
     Serial.println("Calibration available for now");
 }
@@ -366,6 +348,39 @@ void loop() {
         serialIndex = 0;
     }
   } // End of Serial processing / parsing
+
+  // HW UART
+  while (Serial0.available() > 0) {
+    serialBuffer1[serialIndex1] = Serial0.read();
+    if (serialBuffer1[serialIndex1] == '\n' || serialBuffer1[serialIndex1] == '\r') {
+      if (serialIndex1 > MAX_SERIAL_LEN) {
+        serialIndex1 = 0;
+        clearString(serialBuffer1, sizeof(serialBuffer1));
+        break;
+      }
+      else {
+        // Process command
+        char stringBuffer[strlen(serialBuffer1) + 2];
+        strcpy(stringBuffer, serialBuffer1);
+        int len = strlen(stringBuffer);
+        if (len == 1) // Empty command, just the terminator
+          break;
+        purgeCRLF(stringBuffer, len);
+        // Reset Index
+        serialIndex1 = 0;
+        //printf("process serial0\n");
+        clearString(serialBuffer1, sizeof(serialBuffer1));
+        //printf("Received on Serial0 : %s\n", StringBuffer);
+        processSerial(stringBuffer);
+      }
+      serialIndex1 = 0;
+    }
+    else {
+      serialIndex1++;
+      if (serialIndex1 > MAX_SERIAL_LEN)
+        serialIndex1 = 0;
+    }
+  } // End of Serial0 processing / parsing
 }
 
 

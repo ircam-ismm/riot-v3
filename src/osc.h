@@ -103,7 +103,7 @@ private:
 
 extern simpleBundle bundleOSC;
 extern simpleOSC rawSensors;
-extern simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
+extern simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, batteryOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
 extern simpleOSC printOscMessage;
 
 

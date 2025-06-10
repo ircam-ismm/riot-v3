@@ -307,5 +307,5 @@ bool simpleBundle::addMessage(uint8_t *buff, uint32_t buffSize) {
 
 simpleBundle bundleOSC;
 simpleOSC rawSensors;
-simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
+simpleOSC accelerometerOSC, gyroscopeOSC, magnetometerOSC, barometerOSC, temperatureOSC, gravityOSC, headingOSC, quaternionsOSC, eulerOSC, controlOSC, batteryOSC, analogInputsOSC, bno055EulerOSC, bno055QuatOSC;
 simpleOSC printOscMessage;

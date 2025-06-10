@@ -25,6 +25,11 @@
 #define PIN1_SET(_pin)                   GPIO.out1_w1ts.data = (uint32_t)(1<<(_pin-32))
 
 
+typedef struct {
+    float voltage;
+    float soc; // normalized {0. ; 1.}
+} voltageSOCMap;
+
 void setLedColor(CRGBW8 color);
 void printToOSC(char *StringMessage);
 void die();
@@ -37,6 +42,7 @@ int readBatteryRaw(void);
 float readBatteryVoltage(void);
 float readUsbVoltage(void);
 uint8_t readChargeStatus(void);
+float voltageToSoC(float voltage);
 
 void setModemSleep();
 void wakeModemSleep();
@@ -45,6 +51,7 @@ void disableWiFi();
 void format();
 
 // file & dir helpers
+bool checkFile(char *filename);
 void listDir(fs::FS &fs, const char * dirname, uint8_t levels);
 void deleteFile(fs::FS &fs, const char * path);
 void renameFile(fs::FS &fs, const char * path1, const char * path2);

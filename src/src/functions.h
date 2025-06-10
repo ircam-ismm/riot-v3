@@ -10,10 +10,10 @@
 
 
 // {0;360°} range to {-180;+180°}
-#define FROM_360_DEGREE(theta) (fmod(theta + 180.0f, 360.0f) - 180.0f)
-//#define FROM_360_DEGREE(theta) fmod(theta + 180.f, 360.f)
+#define FROM_360_DEGREE(theta) (fmodf(theta + 180.0f, 360.0f) - 180.0f)
+//#define FROM_360_DEGREE(theta) fmodf(theta + 180.f, 360.f)
 // {-180;+180°} range to {0;360°}
-#define TO_360_DEGREE(theta) fmod(theta + 180.0f, 360.0f)
+#define TO_360_DEGREE(theta) (fmodf(theta + 360.0f, 360.0f))
 
 #define EPSILON 1e-6f
 

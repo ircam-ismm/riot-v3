@@ -28,6 +28,10 @@ extern IPAddress defaultDestinationIP;
 
 #define NO_USB_VOLTAGE_THRESHOLD  3.0f    // volts
 
+#define DEFAULT_PLI_LOW           3.5f    // volts
+#define DEFAULT_PLI_HIGH          3.7f    // volts
+#define MAX_PLI_RANGE             5.0f    // volts
+
 // Slowboot parameter stored in EEPROM (emulated by internal flash)
 #define SLOW_BOOT_ADDRESS         0x00
 #define MAX_SLOW_BOOT             10000 // ms
@@ -61,6 +65,7 @@ extern IPAddress defaultDestinationIP;
 #define OSC_STRING_QUATERNION     "quaternion"
 #define OSC_STRING_CONTROL        "control"
 #define OSC_STRING_KEY            "key"
+#define OSC_STRING_BATTERY        "battery"
 #define OSC_STRING_ANALOG         "analog"
 #define OSC_STRING_BNO055         "bno055"
 #define OSC_STRING_MESSAGE        "message"
@@ -170,6 +175,8 @@ public:
   CRGBW8& getPixelColor() { return ledColor; }
   int getCpuSpeed() { return cpuSpeed; }
   int getCpuDoze() { return cpuDoze; }
+  float getPliLow() { return pliLow; }
+  float getPliHigh() { return pliHigh; }
   char* getOscAddress() { return oscAddressString; }
   void updateStreaming(CRGBW8 color);
   bool pollChargerPlugged();
@@ -204,6 +211,8 @@ public:
   void setLogMag(bool flag) { logMag = flag; }
   void setPixelColor(CRGBW8 color) { ledColor = color; }
   void setBonjour(char *name) { strcpy(mdnsName, name); }
+  void setPliLow(float thresh) { pliLow = thresh; }
+  void setPliHigh(float thresh) { pliHigh = thresh; }
   bool isAP() { operatingMode == AP_MODE; }
   bool isConfig() { return configurationMode; }
   bool isForcedConfig() { return forceConfigMode; }
@@ -291,7 +300,8 @@ private:
 
   int batteryVoltageRaw;
   BoxFilter<float, 10> batteryVoltageFiltered;
-  float batteryVoltage, analogInput1, analogInput2;
+  float batteryVoltage, batterySoC, analogInput1, analogInput2;
+  float pliLow, pliHigh;
 
   uint32_t now;   // time since start to add as timestamp
   

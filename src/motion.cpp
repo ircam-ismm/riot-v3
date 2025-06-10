@@ -32,14 +32,7 @@ void motionCore::init() {
   q0 = 1.0f;
   q1 = q2 = q3 = 0.0f;
 
-  // Soft Iron = Identity = no correction
-  for(int i = 0; i < 3; i++) {
-    softIronMatrix[i][i] = 1.0f;
-    for(int j = 0; j < 3; j++) {
-      if(j != i)
-        softIronMatrix[i][j] = 0.0f;
-    }
-  }
+  resetSoftIron();
 }
 
 
@@ -122,6 +115,7 @@ void motionCore::grab() {
   magZ = lis3mdl.getMagZ();
   boardTemperatureRaw = lsm6d.getTemp();
   boardTemperature = ((float)boardTemperatureRaw / LSM6DSL_TEMP_SCALE) + LSM_BIAS_TEMPERATURE;
+  mcuTemperature = temperatureRead();
   temperature = bmp390.getTemp();
   pressure = bmp390.getPressure() / 100.f;   // hPa
   altitude = bmp390.getAltitude();
@@ -268,8 +262,7 @@ void motionCore::compute() {
   m_y = (mRes * (float)magY) - mbias[1];
   m_z = (mRes * (float)magZ) - mbias[2];   
 
-  // Apply Soft-iron correction matrix : corrected = M * centered
-  // Apply soft iron correction: 
+  // Apply Soft-iron correction matrix : corrected = M * centered 
   float centered[3] = {m_x, m_y, m_z};
   float corrected[3];
   for (int i = 0; i < 3; i++) {
@@ -546,11 +539,15 @@ void motionCore::updateIMU(float ax, float ay, float az, float gx, float gy, flo
 }
 
 // https://oduerr.github.io/gesture/ypr_calculations.html
-// For NWU frame
 void motionCore::computeGravity() {
-   grav_x = 2.0f * (q1 * q3 - q0 * q2);
+   // For NWU frame (madgwick)
+   /*grav_x = 2.0f * (q1 * q3 - q0 * q2);
    grav_y = 2.0f * (q0 * q1 + q2 * q3);
-   //grav_z = q0q0 - q1q1 - q2q2 + q3q3;
+   grav_z = 2.0f * (q0q0 + q3q3) - 1.0f;*/
+
+   // For ENU frame like accelerometers are, and X-Y axis swap
+   grav_y = 2.0f * (q1 * q3 - q0 * q2); // y = x
+   grav_x = -2.0f * (q0 * q1 + q2 * q3); // x = -y
    grav_z = 2.0f * (q0q0 + q3q3) - 1.0f;
 }
 
@@ -1006,6 +1003,15 @@ void motionCore::resetSoftIron(void) {
   meanMag[0] = (float)magX;
   meanMag[1] = (float)magY;
   meanMag[2] = (float)magZ;
+
+  // Soft Iron = Identity = no correction
+  for(int i = 0; i < 3; i++) {
+    softIronMatrix[i][i] = 1.0f;
+    for(int j = 0; j < 3; j++) {
+      if(j != i)
+        softIronMatrix[i][j] = 0.0f;
+    }
+  }
     
   for(int i = 0 ; i < SCATTER_PARAM_COUNT ; i++) {
     for(int j = 0 ; j < SCATTER_PARAM_COUNT ; j++) {

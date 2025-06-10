@@ -1,6 +1,7 @@
 mgraphics.init();
 mgraphics.relative_coords = 0;
 mgraphics.autofill = 0;
+outlets = 1;
 
 var numSegments = jsarguments.length > 1 ? jsarguments[1] : 10; // Number of segments in the bargraph
 var minValue = jsarguments.length > 2 ? jsarguments[2] : 0;
@@ -48,6 +49,7 @@ function bang() {
 
 function msg_float(value) {
     currentValue = Math.max(minValue, Math.min(maxValue, value));
+	outlet(0, currentValue);
     bang();
 }
 

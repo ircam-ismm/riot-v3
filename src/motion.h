@@ -41,7 +41,7 @@ Very Fast Adaptation (unstable but responsive)        0.3 - 0.5       Reacts ver
 #define SCATTER_PARAM_COUNT           10      // Scatter parameter size
 
 #define MIN_SAMPLERATE    3
-#define MAX_SAMPLERATE    1000
+#define MAX_SAMPLERATE    20000
 
 #define G_TO_MS2          9.80665f
 
@@ -140,7 +140,7 @@ public:
 
   float a_x, a_y, a_z, g_x, g_y, g_z, m_x, m_y, m_z; // variables to hold latest sensor data values
   float convError;
-  float temperature, boardTemperature;
+  float temperature, boardTemperature, mcuTemperature;
   float altitude, pressure;
   float pitch, yaw, roll, heading;
   float q0 = 1.0f, q1 = 0.0f, q2 = 0.0f, q3 = 0.0f; // quaternion of sensor frame relative to auxiliary frame

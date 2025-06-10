@@ -303,7 +303,7 @@ bool parseConfigCallback(char *line) {
 
     Serial.printf("%s %u\n", TEXT_CPU_SPEED, riot.getCpuSpeed());
     Serial.printf("%s %u\n", TEXT_CPU_DOZE, riot.getCpuDoze());
-    
+
     Serial.printf("%s %f\n", TEXT_DECLINATION, motion.getDeclination());
     Serial.printf("%s %u\n", TEXT_ORIENTATION, motion.getOrientation());
     Serial.printf("%s %u\n", TEXT_BNO_ORIENT, bno055.orientation);
@@ -630,7 +630,7 @@ bool parseConfigCallback(char *line) {
   else if(!strncmp(TEXT_CPU_SPEED, line, strlen(TEXT_CPU_SPEED))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
-    val = constrain(val,80 , 240);
+    val = constrain(val,40 , 240);
     riot.setCpuSpeed(val);
     if(riot.isDebug())
       Serial.printf("%s %d\n", TEXT_CPU_SPEED, riot.getCpuSpeed());
@@ -639,12 +639,34 @@ bool parseConfigCallback(char *line) {
   else if(!strncmp(TEXT_CPU_DOZE, line, strlen(TEXT_CPU_DOZE))) {
     index = skipToValue(line);
     val = atoi(&line[index]);
-    val = constrain(val,80 , 240);
+    val = constrain(val,40 , 240);
     riot.setCpuDoze(val);
     if(riot.isDebug())
       Serial.printf("%s %d\n", TEXT_CPU_DOZE, riot.getCpuDoze());
     return(true);
   }
+  // PLI high & low thresholds (list)
+  else if (!strncmp(TEXT_PLI_LOW_HIGH, line, strlen(TEXT_PLI_LOW_HIGH))) {
+    float val;
+    index = skipToValue(line);
+    if (index) {
+      val = atof(&line[index]);
+      val = constrain(val, 0.f, MAX_PLI_RANGE);
+      riot.setPliLow(val);
+      index = skipToNextValue(line, index);
+      val = atof(&line[index]);
+      val = constrain(val, 0.f, MAX_PLI_RANGE);
+      riot.setPliHigh(val);
+      if (riot.getPliLow() >= riot.getPliHigh()) {
+        Serial.printf("%s PLI Low end must be < PLI High end\n", TEXT_ERROR_LOG);
+      }
+
+      if (riot.isDebug())
+        Serial.printf("PLI range (V)={%f;%f}\n", riot.getPliLow(), riot.getPliHigh());
+    }
+    return (true);
+  }
+  
   else if(!strncmp(TEXT_LED_COLOR, line, strlen(TEXT_LED_COLOR))) {
     index = skipToValue(line);
     if (index) {

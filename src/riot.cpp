@@ -41,6 +41,8 @@ void riotCore::init() {
   RemoteOutputState = LOW;
   chargingMode = CHARGE_STREAM_IF_ON;
   ledColor = Blue;
+  pliLow = DEFAULT_PLI_LOW;
+  pliHigh = DEFAULT_PLI_HIGH;
 
   // Global SPI parameters (should work for all sensors)
   // HSPI = SPI2 - VSPI = SPI3
@@ -159,7 +161,7 @@ void riotCore::begin() {
     headingOSC.begin(str, "fffi");
 
     sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_TEMPERATURE);
-    temperatureOSC.begin(str, "ffi");
+    temperatureOSC.begin(str, "fffi");
 
     sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ORIENTATION, OSC_STRING_EULER);
     eulerOSC.begin(str, "fffi");
@@ -170,8 +172,11 @@ void riotCore::begin() {
     sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_CONTROL, OSC_STRING_KEY);
     controlOSC.begin(str, "ffi");
 
+    sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_BATTERY);
+    batteryOSC.begin(str, "fii"); // battery State of Charge (SoC) normalized {0;1} + charging or not.
+    
     sprintf(str, "/%s/%s/%d/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_ANALOG);
-    analogInputsOSC.begin(str, "fffi"); // including battery voltage
+    analogInputsOSC.begin(str, "fffi"); // Battery voltage, AN0 & AN1
 
     sprintf(str, "/%s/%s/%d/%s/%s", OSC_STRING_SOURCE, OSC_STRING_API_VERSION, moduleID, OSC_STRING_BNO055, OSC_STRING_EULER);
     bno055EulerOSC.begin(str, "fffi");
@@ -220,7 +225,10 @@ void riotCore::connect(void) {
   WiFi.begin(ssid, password);
   // Stores the MAC ADDRESS for further use (like AP naming)
   WiFi.macAddress(mac);
-  Serial.printf("Retrieved STA MAC %X:%X:%X:%X:%X:%X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  Serial.printf("Retrieved STA MAC %02X:%02X:%02X:%02X:%02X:%02X\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+  bool logToFile = !checkFile(VERSION_FILE);
+  if(logToFile)
+    version(true);  // populates the version string (+MAC) + displays it - logs to file if version.txt not present
 }
 
 
@@ -446,8 +454,10 @@ void riotCore::charge() {
 
   pollChargerPlugged();
 
-  if(!isPlugged())
+  if(!isPlugged()) {
+    chargingStateMachine = RIOT_CHARGER_UNPLUGGED;
     return;
+  }
     
   if(chargingMode == CHARGE_STREAM_IF_ON) {
     if(isOn()) {
@@ -658,7 +668,7 @@ void riotCore::process() {
     return;
 
   samplingCounter = millis();  
-  digitalWrite(REMOTE_OUTPUT, HIGH);
+  //digitalWrite(REMOTE_OUTPUT, HIGH);
   // We speed up the processor during the CPU intensive compute task then sleep the WIFI modem and doze CPU util next time
   wakeModemSleep();
   setLedColor(ledColor);    // Turns blue or specified led color in config
@@ -678,6 +688,8 @@ void riotCore::process() {
   // Decide whether you prefer the raw voltage or filtered (moving average)
   //batteryVoltage = batteryVoltageFiltered.filter(readBatteryVoltage());
   batteryVoltage = readBatteryVoltage();
+  batterySoC = voltageToSoC(batteryVoltage);
+  batterySoC = constrain(batterySoC, 0.f, 1.f);
   analogInput1 = (float)analogRead(ANALOG_INPUT) * ANALOG_INPUT_VOLTAGE_SCALE;
   analogInput2 = (float)analogRead(ANALOG2_INPUT) * ANALOG_INPUT_VOLTAGE_SCALE;
   now = millis();
@@ -686,6 +698,11 @@ void riotCore::process() {
   analogInputsOSC.addFloat(analogInput1);
   analogInputsOSC.addFloat(analogInput2);
   analogInputsOSC.addInt(now); 
+
+  batteryOSC.rewind();
+  batteryOSC.addFloat(batterySoC);
+  batteryOSC.addInt(isCharging());
+  batteryOSC.addInt(now); 
 
   controlOSC.rewind();
   controlOSC.addFloat((float)onBoardSwitch.pressed());
@@ -735,12 +752,12 @@ void riotCore::process() {
   barometerOSC.rewind();
   barometerOSC.addFloat(motion.pressure);
   barometerOSC.addFloat(motion.altitude);
-  barometerOSC.addFloat(motion.temperature);
   barometerOSC.addInt(now);
   
   temperatureOSC.rewind();
-  temperatureOSC.addFloat(motion.boardTemperature);
-  temperatureOSC.addFloat(motion.temperature);
+  temperatureOSC.addFloat(motion.boardTemperature); // Acc sensor
+  temperatureOSC.addFloat(motion.temperature);      // Barometer sensor
+  temperatureOSC.addFloat(motion.mcuTemperature);   // ESP32-S3 sensor
   temperatureOSC.addInt(now);
 
   quaternionsOSC.rewind();
@@ -751,7 +768,7 @@ void riotCore::process() {
   quaternionsOSC.addInt(now);
 
   eulerOSC.rewind();
-  eulerOSC.addFloat(motion.yaw);
+  eulerOSC.addFloat(motion.yaw);    // in Degree
   eulerOSC.addFloat(motion.pitch);
   eulerOSC.addFloat(motion.roll);
   eulerOSC.addInt(now);
@@ -772,9 +789,9 @@ void riotCore::process() {
   }
 
   gravityOSC.rewind();
-  gravityOSC.addFloat(motion.grav_x);
-  gravityOSC.addFloat(motion.grav_y);
-  gravityOSC.addFloat(motion.grav_z);
+  gravityOSC.addFloat(motion.grav_x * G_TO_MS2);
+  gravityOSC.addFloat(motion.grav_y * G_TO_MS2);
+  gravityOSC.addFloat(motion.grav_z * G_TO_MS2);
   gravityOSC.addInt(now);
 
   headingOSC.rewind();
@@ -799,6 +816,7 @@ void riotCore::process() {
     bundleOSC.addMessage(bno055EulerOSC.getBuffer(), bno055EulerOSC.getSize());
     bundleOSC.addMessage(bno055QuatOSC.getBuffer(), bno055QuatOSC.getSize());
   }
+  bundleOSC.addMessage(batteryOSC.getBuffer(), batteryOSC.getSize());
   bundleOSC.addMessage(analogInputsOSC.getBuffer(), analogInputsOSC.getSize());
   bundleOSC.addMessage(controlOSC.getBuffer(), controlOSC.getSize());
   
@@ -808,7 +826,7 @@ void riotCore::process() {
      
   setLedColor(Black);
   setModemSleep();
-  digitalWrite(REMOTE_OUTPUT, LOW);
+  //digitalWrite(REMOTE_OUTPUT, LOW);
 }
 
 int riotCore::getRSSI() {
@@ -824,6 +842,8 @@ void riotCore::version(bool logToFile) {
   Serial.printf("[VERSION] %s\n", versionString);
   Serial.printf("[FW] %s\n", fwString);
   Serial.printf("[DATE] %s\n", dateString);
+  Serial.print("MAC address: ");
+  Serial.println(WiFi.macAddress());
 
   if(logToFile) {  
     FIL VersionFile;
@@ -843,6 +863,8 @@ void riotCore::version(bool logToFile) {
       sprintf(str, fwString);
       strcat(str, TEXT_FILE_EOL);
       strcat(str, dateString);
+      strcat(str, TEXT_FILE_EOL);
+      sprintf(str, "MAC address: %02X:%02X:%02X:%02X:%02X:%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
       strcat(str, TEXT_FILE_EOL);
       f_write(&VersionFile, str, strlen(str), &write);
       f_close(&VersionFile);

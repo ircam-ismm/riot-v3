@@ -70,6 +70,7 @@
 #define TEXT_GYRO_HPF             "gyrohpf"
 #define TEXT_BARO_MODE            "baromode"
 #define TEXT_BARO_REF             "baroref"
+#define TEXT_PLI_LOW_HIGH         "plilh"
 #define TEXT_GO_COMMAND           "GO"
 #define TEXT_CANCEL_COMMAND       "CANCEL"
 #define TEXT_LOG_MOTION           "logmotion"

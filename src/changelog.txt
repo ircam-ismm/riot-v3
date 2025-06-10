@@ -1,6 +1,33 @@
 
 ** R-IoT v3 changelog
 
+to update: copy Riot-v3.xxx.bin to the module's flashdrive and rename it update.bin. Reboot
+Version can be auto-logged to file. Delete version.txt on the flashdrive and reboot the module, which will
+create the file version.txt, also containing the MAC address of the module. 
+
+
+***********************************************
+** v3.20.000 10/06/2025  57% flash
+***********************************************
+- Gyros now exported in OSC in rad.s-1 + max/msp sliders range fixed
+- Heading now exported in OSC as {0;360}° + max/msp slider range fixed
+- Fixed gravity vector now in m.s-2 + frame/axis swapping NWU to ENU and now homogenous with acc range (same SI unit)
+- Fixed /control/key OSC message (typo)
+- Cleared Soft Iron Matrix (identity) during mag calibration reset
+- Added a simplfied model of battery State of Charge (SoC) based on polyline regressions to produced a normalized charge indicator {0;1}
+- Battery sent as independent OSC message with voltage and normalized SoC
+- Fixed Barometer timestamp (OSC message typo)
+- Added MCU temperature to measures & OSC message (ESP32-S3 internal sensor)
+- Stripped '/' from OSC messages in max/msp abstraction, removes the need of CNMAT OSC-route objects (like in comote helpers)
+- Added board autotest for manufacturing / programming jig: tests sensors, I/O, ADC, pixel, OLED
+- Battery info now split between /analog <Vbatt> <AN0> <AN1> and /battery <Charge level> <Charge state>
+- Boot now checks for the presence of version.txt. If absent, logs version to file
+- Version command now also logs the MAC address of the module to ease the DHCP address reservation process for the user
+  => delete version.txt on the board's flashdrive, automatically re-populated at boot time with fw version + MAC
+- Updated riot-v3 max abstraction (should be compatible with max 8.6.5 and max 9.x)
+
+
+
 
 ***********************************************
 ** v3.19.000 10/04/2025  56% flash
@@ -23,8 +50,6 @@
 - Max abstraction now uses quaternion to render the 3D model (selectable)
 - Fixed parameter 'gyrogate' parsing function
 - Fixed mDNS (bonjour) not being started when not in config mode
-- Gyros now exported in OSC in rad.s-1
-- Heading now exported in OSC as {0;360}°
 
 
 
