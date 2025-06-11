@@ -5,6 +5,7 @@ to update: copy Riot-v3.xxx.bin to the module's flashdrive and rename it update.
 Version can be auto-logged to file. Delete version.txt on the flashdrive and reboot the module, which will
 create the file version.txt, also containing the MAC address of the module. 
 
+copy the contents of the /data folder to the root of the module's flashdrive (backup your config.txt & adjust for new parameters)
 
 ***********************************************
 ** v3.20.000 10/06/2025  57% flash
